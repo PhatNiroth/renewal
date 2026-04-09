@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import {
   RiAlarmLine, RiCalendarCheckLine, RiErrorWarningLine, RiCloseLine,
 } from "@remixicon/react"
+import { MarkRenewedButton } from "@/components/renewals/mark-renewed-button"
 
 function fmtDate(d: Date | string) {
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
@@ -26,9 +27,15 @@ export default async function RenewalsPage() {
   const u = session.user as { isAdmin?: boolean; permissions?: Record<string, { view?: boolean }> }
   if (!u.isAdmin && !u.permissions?.RENEWALS?.view) redirect("/dashboard")
 
+  const canRenew = u.isAdmin || !!u.permissions?.RENEWALS?.edit
+
+  const in30days = new Date()
+  in30days.setDate(in30days.getDate() + 30)
+
   const subscriptions = await db.subscription.findMany({
     where: {
       status: { in: ["ACTIVE", "EXPIRING_SOON"] },
+      renewalDate: { lte: in30days },
     },
     include: { vendor: true, responsible: true },
     orderBy: { renewalDate: "asc" },
@@ -87,12 +94,13 @@ export default async function RenewalsPage() {
                 <th className="px-6 py-3 text-left font-medium text-muted-foreground">Renewal Date</th>
                 <th className="px-6 py-3 text-left font-medium text-muted-foreground">Due In</th>
                 <th className="px-6 py-3 text-left font-medium text-muted-foreground">Responsible</th>
+                {canRenew && <th className="px-6 py-3" />}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {subscriptions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-16 text-center text-sm text-muted-foreground">
+                  <td colSpan={canRenew ? 8 : 7} className="px-6 py-16 text-center text-sm text-muted-foreground">
                     No active subscriptions found.
                   </td>
                 </tr>
@@ -138,6 +146,11 @@ export default async function RenewalsPage() {
                     <td className="px-6 py-3.5 text-muted-foreground">
                       {sub.responsible?.name ?? sub.responsible?.email ?? <span className="text-muted-foreground/40">—</span>}
                     </td>
+                    {canRenew && (
+                      <td className="px-6 py-3.5 text-right">
+                        <MarkRenewedButton subscriptionId={sub.id} />
+                      </td>
+                    )}
                   </tr>
                 )
               })}

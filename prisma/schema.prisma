@@ -113,9 +113,11 @@ model Subscription {
   id            String             @id @default(cuid())
   vendorId      String
   planName      String
+  department    String?
   cost          Int                // in cents
   currency      String             @default("usd")
   billingCycle  BillingCycle       @default(MONTHLY)
+  customDays    Int?               // only used when billingCycle = CUSTOM
   startDate     DateTime
   renewalDate   DateTime
   status        SubscriptionStatus @default(ACTIVE)
@@ -189,6 +191,7 @@ enum BillingCycle {
   QUARTERLY
   YEARLY
   ONE_TIME
+  CUSTOM
 }
 
 enum SubscriptionStatus {

@@ -11,6 +11,18 @@ function getUser(session: Awaited<ReturnType<typeof auth>>) {
   return session?.user as { isAdmin?: boolean; permissions?: Record<string, { add?: boolean; edit?: boolean; delete?: boolean }> } | undefined
 }
 
+function nextRenewalDate(current: Date, billingCycle: BillingCycle, customDays?: number | null): Date {
+  const next = new Date(current)
+  switch (billingCycle) {
+    case BillingCycle.MONTHLY:   next.setMonth(next.getMonth() + 1); break
+    case BillingCycle.QUARTERLY: next.setMonth(next.getMonth() + 3); break
+    case BillingCycle.YEARLY:    next.setFullYear(next.getFullYear() + 1); break
+    case BillingCycle.CUSTOM:    next.setDate(next.getDate() + (customDays ?? 30)); break
+    case BillingCycle.ONE_TIME:  break
+  }
+  return next
+}
+
 export async function createSubscription(formData: FormData): Promise<ActionResult> {
   const session = await auth()
   const u = getUser(session)
@@ -19,8 +31,10 @@ export async function createSubscription(formData: FormData): Promise<ActionResu
 
   const vendorId      = formData.get("vendorId") as string
   const planName      = formData.get("planName") as string
+  const department    = formData.get("department") as string | null
   const cost          = formData.get("cost") as string
   const billingCycle  = (formData.get("billingCycle") as BillingCycle) || "MONTHLY"
+  const customDays    = formData.get("customDays") as string | null
   const startDate     = formData.get("startDate") as string
   const renewalDate   = formData.get("renewalDate") as string
   const responsibleId = formData.get("responsibleId") as string | null
@@ -32,6 +46,7 @@ export async function createSubscription(formData: FormData): Promise<ActionResu
   if (!cost)        return { error: "Cost is required" }
   if (!startDate)   return { error: "Start date is required" }
   if (!renewalDate) return { error: "Renewal date is required" }
+  if (billingCycle === "CUSTOM" && !customDays) return { error: "Custom duration (days) is required" }
 
   const costCents = Math.round(parseFloat(cost) * 100)
   if (isNaN(costCents) || costCents < 0) return { error: "Invalid cost amount" }
@@ -41,8 +56,10 @@ export async function createSubscription(formData: FormData): Promise<ActionResu
       data: {
         vendorId,
         planName,
-        cost: costCents,
+        department:    department || null,
+        cost:          costCents,
         billingCycle,
+        customDays:    billingCycle === "CUSTOM" && customDays ? parseInt(customDays) : null,
         startDate:     new Date(startDate),
         renewalDate:   new Date(renewalDate),
         status:        SubscriptionStatus.ACTIVE,
@@ -64,8 +81,10 @@ export async function updateSubscription(
   subscriptionId: string,
   data: Partial<{
     planName: string
+    department: string | null
     cost: number
     billingCycle: BillingCycle
+    customDays: number | null
     renewalDate: Date
     status: SubscriptionStatus
     responsibleId: string | null
@@ -100,6 +119,36 @@ export async function cancelSubscription(subscriptionId: string): Promise<Action
       where: { id: subscriptionId },
       data: { status: SubscriptionStatus.CANCELLED },
     })
+    revalidatePath("/dashboard/subscriptions")
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return { error: message }
+  }
+}
+
+export async function markAsRenewed(subscriptionId: string): Promise<ActionResult> {
+  const session = await auth()
+  const u = getUser(session)
+  if (!u) return { error: "Unauthorized" }
+  if (!u.isAdmin && !u.permissions?.RENEWALS?.edit) return { error: "Forbidden" }
+
+  try {
+    const sub = await db.subscription.findUnique({ where: { id: subscriptionId } })
+    if (!sub) return { error: "Subscription not found" }
+
+    const next = nextRenewalDate(sub.renewalDate, sub.billingCycle, sub.customDays)
+
+    await db.subscription.update({
+      where: { id: subscriptionId },
+      data: {
+        status:      SubscriptionStatus.ACTIVE,
+        renewalDate: sub.billingCycle === BillingCycle.ONE_TIME ? sub.renewalDate : next,
+      },
+    })
+
+    revalidatePath("/dashboard/renewals")
     revalidatePath("/dashboard/subscriptions")
     revalidatePath("/dashboard")
     return { success: true }

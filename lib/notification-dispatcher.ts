@@ -59,7 +59,33 @@ export interface DispatchResult {
   errors: number
 }
 
+export async function syncSubscriptionStatuses(): Promise<void> {
+  const now = new Date()
+  const in7days = addDays(now, 7)
+
+  // Mark EXPIRED — renewalDate is in the past and still ACTIVE or EXPIRING_SOON
+  await db.subscription.updateMany({
+    where: {
+      renewalDate: { lt: now },
+      status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.EXPIRING_SOON] },
+    },
+    data: { status: SubscriptionStatus.EXPIRED },
+  })
+
+  // Mark EXPIRING_SOON — renewalDate within 7 days and still ACTIVE
+  await db.subscription.updateMany({
+    where: {
+      renewalDate: { gte: now, lte: in7days },
+      status: SubscriptionStatus.ACTIVE,
+    },
+    data: { status: SubscriptionStatus.EXPIRING_SOON },
+  })
+
+  console.log("[status-sync] Subscription statuses updated")
+}
+
 export async function runNotificationDispatcher(): Promise<DispatchResult> {
+  await syncSubscriptionStatuses()
   const now = new Date()
   let sent = 0, skipped = 0, errors = 0
 

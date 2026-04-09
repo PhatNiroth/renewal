@@ -26,7 +26,7 @@ const statusConfig: Record<string, { label: string; className: string; icon: Rea
 }
 
 const cycleLabel: Record<string, string> = {
-  MONTHLY: "Monthly", QUARTERLY: "Quarterly", YEARLY: "Yearly", ONE_TIME: "One-time",
+  MONTHLY: "Monthly", QUARTERLY: "Quarterly", YEARLY: "Yearly", ONE_TIME: "One-time", CUSTOM: "Custom",
 }
 
 const ALL_STATUSES = ["ACTIVE", "EXPIRING_SOON", "EXPIRED", "CANCELLED", "PENDING"]
@@ -92,6 +92,11 @@ function AddSubscriptionModal({
             <Input name="planName" placeholder="e.g. Pro, Business, Enterprise" required />
           </div>
 
+          <div className="col-span-2 space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Department</label>
+            <Input name="department" placeholder="e.g. IT, Finance, Operations" />
+          </div>
+
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Cost (USD) <span className="text-destructive">*</span></label>
             <Input name="cost" type="number" min="0.01" step="0.01" placeholder="0.00" required />
@@ -99,9 +104,17 @@ function AddSubscriptionModal({
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Billing Cycle</label>
-            <select name="billingCycle" defaultValue="MONTHLY" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+            <select name="billingCycle" defaultValue="MONTHLY" onChange={e => {
+              const wrap = (e.target as HTMLSelectElement).closest("form")?.querySelector("[data-custom-days]") as HTMLElement | null
+              if (wrap) wrap.style.display = e.target.value === "CUSTOM" ? "block" : "none"
+            }} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
               {Object.entries(cycleLabel).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
+          </div>
+
+          <div data-custom-days style={{ display: "none" }} className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Custom Duration (days) <span className="text-destructive">*</span></label>
+            <Input name="customDays" type="number" min="1" placeholder="e.g. 90" />
           </div>
 
           <div className="space-y-1.5">
@@ -167,11 +180,15 @@ function EditSubscriptionModal({
     const fd = new FormData(e.currentTarget)
     const cost = fd.get("cost") as string
     const costCents = Math.round(parseFloat(cost || "0") * 100)
+    const billingCycle = fd.get("billingCycle") as "MONTHLY" | "QUARTERLY" | "YEARLY" | "ONE_TIME" | "CUSTOM"
+    const customDaysRaw = fd.get("customDays") as string
     startTransition(async () => {
       const result = await updateSubscription(sub.id, {
         planName:      fd.get("planName") as string,
+        department:    (fd.get("department") as string) || null,
         cost:          costCents,
-        billingCycle:  fd.get("billingCycle") as "MONTHLY" | "QUARTERLY" | "YEARLY" | "ONE_TIME",
+        billingCycle,
+        customDays:    billingCycle === "CUSTOM" && customDaysRaw ? parseInt(customDaysRaw) : null,
         renewalDate:   new Date(fd.get("renewalDate") as string),
         status:        fd.get("status") as "ACTIVE" | "EXPIRING_SOON" | "EXPIRED" | "CANCELLED" | "PENDING",
         responsibleId: (fd.get("responsibleId") as string) || null,
@@ -199,6 +216,11 @@ function EditSubscriptionModal({
             <Input name="planName" defaultValue={sub.planName} required />
           </div>
 
+          <div className="col-span-2 space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Department</label>
+            <Input name="department" defaultValue={(sub as any).department ?? ""} placeholder="e.g. IT, Finance, Operations" />
+          </div>
+
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Cost (USD) <span className="text-destructive">*</span></label>
             <Input name="cost" type="number" min="0" step="0.01" defaultValue={(sub.cost / 100).toFixed(2)} required />
@@ -206,9 +228,17 @@ function EditSubscriptionModal({
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Billing Cycle</label>
-            <select name="billingCycle" defaultValue={sub.billingCycle} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+            <select name="billingCycle" defaultValue={sub.billingCycle} onChange={e => {
+              const wrap = (e.target as HTMLSelectElement).closest("form")?.querySelector("[data-custom-days-edit]") as HTMLElement | null
+              if (wrap) wrap.style.display = e.target.value === "CUSTOM" ? "block" : "none"
+            }} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
               {Object.entries(cycleLabel).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
+          </div>
+
+          <div data-custom-days-edit style={{ display: sub.billingCycle === "CUSTOM" ? "block" : "none" }} className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Custom Duration (days)</label>
+            <Input name="customDays" type="number" min="1" defaultValue={(sub as any).customDays ?? ""} placeholder="e.g. 90" />
           </div>
 
           <div className="space-y-1.5">
@@ -269,9 +299,10 @@ export default function SubscriptionsClient({
   canEdit: boolean
   canAdd: boolean
 }) {
-  const [search, setSearch]             = useState("")
-  const [statusFilter, setStatusFilter] = useState("ALL")
-  const [sortKey, setSortKey]           = useState<"vendor" | "cost" | "renewal" | "cycle">("renewal")
+  const [search, setSearch]               = useState("")
+  const [statusFilter, setStatusFilter]   = useState("ALL")
+  const [deptFilter, setDeptFilter]       = useState("ALL")
+  const [sortKey, setSortKey]             = useState<"vendor" | "cost" | "renewal" | "cycle">("renewal")
   const [sortDir, setSortDir]           = useState<"asc" | "desc">("asc")
   const [showModal, setShowModal]       = useState(false)
   const [editing, setEditing]           = useState<SubscriptionFull | null>(null)
@@ -284,12 +315,15 @@ export default function SubscriptionsClient({
     else { setSortKey(key); setSortDir("asc") }
   }
 
+  const departments = ["ALL", ...Array.from(new Set(subscriptions.map(s => (s as any).department).filter(Boolean))).sort()]
+
   const filtered = subscriptions
     .filter(s => statusFilter === "ALL" || s.status === statusFilter)
+    .filter(s => deptFilter === "ALL" || (s as any).department === deptFilter)
     .filter(s => {
       if (!search) return true
       const q = search.toLowerCase()
-      return s.vendor.name.toLowerCase().includes(q) || s.planName.toLowerCase().includes(q)
+      return s.vendor.name.toLowerCase().includes(q) || s.planName.toLowerCase().includes(q) || ((s as any).department ?? "").toLowerCase().includes(q)
     })
     .sort((a, b) => {
       let cmp = 0
@@ -365,31 +399,49 @@ export default function SubscriptionsClient({
         {/* Table card */}
         <div className="rounded-xl border border-border bg-card">
           {/* Toolbar */}
-          <div className="flex flex-col gap-3 px-6 py-4 border-b border-border sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative w-full sm:max-w-xs">
-              <RiSearchLine className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search vendor or plan…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+          <div className="flex flex-col gap-3 px-6 py-4 border-b border-border">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="relative w-full sm:max-w-xs">
+                <RiSearchLine className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search vendor, plan, or department…"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <RiFilterLine className="size-4 text-muted-foreground shrink-0" />
+                {["ALL", ...ALL_STATUSES].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setStatusFilter(s)}
+                    className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                      statusFilter === s ? "bg-primary text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    {s === "ALL" ? "All" : statusConfig[s]?.label ?? s}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <RiFilterLine className="size-4 text-muted-foreground shrink-0" />
-              {["ALL", ...ALL_STATUSES].map(s => (
-                <button
-                  key={s}
-                  onClick={() => setStatusFilter(s)}
-                  className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                    statusFilter === s ? "bg-primary text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
-                >
-                  {s === "ALL" ? "All" : statusConfig[s]?.label ?? s}
-                </button>
-              ))}
-            </div>
+            {departments.length > 1 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-muted-foreground shrink-0">Department:</span>
+                {departments.map(d => (
+                  <button
+                    key={d}
+                    onClick={() => setDeptFilter(d)}
+                    className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                      deptFilter === d ? "bg-primary text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    {d === "ALL" ? "All Departments" : d}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Table */}
@@ -401,6 +453,7 @@ export default function SubscriptionsClient({
                     Vendor <SortIcon col="vendor" />
                   </th>
                   <th className="px-6 py-3 text-left font-medium text-muted-foreground">Plan</th>
+                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Department</th>
                   <th className="px-6 py-3 text-left font-medium text-muted-foreground">Status</th>
                   <th className="cursor-pointer select-none px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("cost")}>
                     Cost <SortIcon col="cost" />
@@ -419,7 +472,7 @@ export default function SubscriptionsClient({
               <tbody className="divide-y divide-border">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={canEdit ? 9 : 8} className="px-6 py-16 text-center text-sm text-muted-foreground">
+                    <td colSpan={canEdit ? 10 : 9} className="px-6 py-16 text-center text-sm text-muted-foreground">
                       {subscriptions.length === 0
                         ? "No subscriptions yet. Click \"Add Subscription\" to create one."
                         : "No subscriptions match your search."}
@@ -435,6 +488,7 @@ export default function SubscriptionsClient({
                     <tr key={sub.id} className="hover:bg-muted/40 transition-colors">
                       <td className="px-6 py-3.5 font-medium text-foreground">{sub.vendor.name}</td>
                       <td className="px-6 py-3.5 text-muted-foreground">{sub.planName}</td>
+                      <td className="px-6 py-3.5 text-muted-foreground">{(sub as any).department ?? <span className="text-muted-foreground/40">—</span>}</td>
                       <td className="px-6 py-3.5">
                         <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${status?.className}`}>
                           <StatusIcon className="size-3" />

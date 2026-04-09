@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import {
-  RiHome5Line, RiStackLine, RiFileLine, RiCalendarLine, RiShieldLine,
+  RiHome5Line, RiStackLine, RiCalendarLine, RiShieldLine,
   RiSettings3Line, RiMenuLine, RiCloseLine, RiSunLine,
   RiMoonLine, RiBuildingLine, RiLogoutBoxLine, RiPriceTag3Line,
 } from "@remixicon/react"
@@ -17,7 +17,6 @@ const navItems = [
   { href: "/dashboard/subscriptions",           label: "Subscriptions",     icon: RiStackLine,     module: "SUBSCRIPTIONS"   },
   { href: "/dashboard/vendors",                 label: "Vendors",           icon: RiBuildingLine,  module: "VENDORS"         },
   { href: "/dashboard/admin/vendor-categories", label: "Vendor Categories", icon: RiPriceTag3Line, module: "VENDOR_CATEGORIES" },
-  { href: "/dashboard/billing",                 label: "Payments",          icon: RiFileLine,      module: "PAYMENTS"        },
   { href: "/dashboard/renewals",                label: "Renewals",          icon: RiCalendarLine,  module: "RENEWALS"        },
 ]
 

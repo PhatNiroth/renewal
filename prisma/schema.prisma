@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Users ────────────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String?
+  isAdmin   Boolean  @default(false)
+  roleId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  role                Role?                @relation(fields: [roleId], references: [id])
+  responsibleFor      Subscription[]       @relation("ResponsibleUser")
+  payments            Payment[]
+  notificationTargets NotificationConfig[] @relation("NotifyUsers")
+  sessions            Session[]
+  notificationPref    NotificationPref?
+}
+
+model NotificationPref {
+  id              String  @id @default(cuid())
+  userId          String  @unique
+  renewal7d       Boolean @default(true)
+  renewal3d       Boolean @default(true)
+  renewal1d       Boolean @default(true)
+  renewalExpired  Boolean @default(false)
+  telegramChatId  String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  sessionToken String   @unique
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Roles & Permissions ──────────────────────────────────────────────────────
+
+model Role {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  isSystem  Boolean  @default(false) // system roles cannot be deleted
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  permissions Permission[]
+  users       User[]
+}
+
+model Permission {
+  id        String @id @default(cuid())
+  roleId    String
+  module    Module
+  canView   Boolean @default(false)
+  canAdd    Boolean @default(false)
+  canEdit   Boolean @default(false)
+  canDelete Boolean @default(false)
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, module])
+}
+
+// ─── Vendor Categories ────────────────────────────────────────────────────────
+
+model VendorCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  color     String   @default("gray")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vendors Vendor[]
+}
+
+// ─── Vendors ──────────────────────────────────────────────────────────────────
+
+model Vendor {
+  id           String  @id @default(cuid())
+  name         String  @unique
+  slug         String  @unique
+  categoryId   String?
+  website      String?
+  contactEmail String?
+  contactName  String?
+  notes        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  category      VendorCategory? @relation(fields: [categoryId], references: [id])
+  subscriptions Subscription[]
+}
+
+// ─── Subscriptions ────────────────────────────────────────────────────────────
+
+model Subscription {
+  id            String             @id @default(cuid())
+  vendorId      String
+  planName      String
+  cost          Int                // in cents
+  currency      String             @default("usd")
+  billingCycle  BillingCycle       @default(MONTHLY)
+  startDate     DateTime
+  renewalDate   DateTime
+  status        SubscriptionStatus @default(ACTIVE)
+  responsibleId String?
+  notes         String?
+  documentPath  String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  vendor              Vendor               @relation(fields: [vendorId], references: [id])
+  responsible         User?                @relation("ResponsibleUser", fields: [responsibleId], references: [id])
+  payments            Payment[]
+  notificationConfigs NotificationConfig[]
+  notificationLogs    NotificationLog[]
+}
+
+// ─── Payments ─────────────────────────────────────────────────────────────────
+
+model Payment {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  amount         Int      // in cents
+  currency       String   @default("usd")
+  paidAt         DateTime
+  paidById       String?
+  note           String?
+  receiptUrl     String?
+  createdAt      DateTime @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  paidBy       User?        @relation(fields: [paidById], references: [id])
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+model NotificationConfig {
+  id             String       @id @default(cuid())
+  subscriptionId String
+  daysBefore     Int
+  channel        NotifChannel @default(EMAIL)
+  createdAt      DateTime     @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  notifyUsers  User[]       @relation("NotifyUsers")
+}
+
+model NotificationLog {
+  id             String    @id @default(cuid())
+  subscriptionId String
+  type           NotifType
+  scheduledFor   DateTime
+  sentAt         DateTime?
+  recipients     Json
+  createdAt      DateTime  @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Module {
+  SUBSCRIPTIONS
+  RENEWALS
+  VENDORS
+  VENDOR_CATEGORIES
+  PAYMENTS
+}
+
+enum BillingCycle {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  ONE_TIME
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRING_SOON
+  EXPIRED
+  CANCELLED
+  PENDING
+}
+
+enum NotifChannel {
+  EMAIL
+  TELEGRAM
+}
+
+enum NotifType {
+  RENEWAL_REMINDER_7_DAYS
+  RENEWAL_REMINDER_3_DAYS
+  RENEWAL_REMINDER_1_DAY
+  RENEWAL_SUCCESS
+  RENEWAL_FAILED
+}

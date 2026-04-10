@@ -17,9 +17,11 @@ function normalizeUrl(url: string | null): string | null {
   return `https://${trimmed}`
 }
 
-function canManageVendors(session: Awaited<ReturnType<typeof auth>>) {
+type VendorSessionUser = { isAdmin?: boolean; permissions?: Record<string, { add?: boolean; edit?: boolean }> }
+
+function canManageVendors(session: { user?: VendorSessionUser } | null): boolean {
   if (!session?.user) return false
-  const u = session.user as { isAdmin?: boolean; permissions?: Record<string, { add?: boolean; edit?: boolean }> }
+  const u = session.user
   return u.isAdmin === true || u.permissions?.VENDORS?.edit === true || u.permissions?.VENDORS?.add === true
 }
 

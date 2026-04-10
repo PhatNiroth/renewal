@@ -19,17 +19,18 @@ export async function POST(req: Request) {
   if (error) return error
 
   const { name, email, password, roleId, isAdmin } = await req.json()
-  if (!email?.trim() || !password) return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
+  const normalizedEmail = email?.toLowerCase().trim()
+  if (!normalizedEmail || !password) return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
   if (password.length < 8) return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 })
 
-  const existing = await db.user.findUnique({ where: { email: email.trim() } })
+  const existing = await db.user.findUnique({ where: { email: normalizedEmail } })
   if (existing) return NextResponse.json({ error: "Email already in use" }, { status: 400 })
 
   const hashed = await bcrypt.hash(password, 12)
   const user = await db.user.create({
     data: {
       name:     name?.trim() || null,
-      email:    email.trim(),
+      email:    normalizedEmail,
       password: hashed,
       isAdmin:  isAdmin ?? false,
       roleId:   roleId || null,

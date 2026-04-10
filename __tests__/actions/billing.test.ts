@@ -29,7 +29,7 @@ describe("recordPayment", () => {
   beforeEach(() => vi.clearAllMocks())
 
   it("returns Unauthorized if not logged in", async () => {
-    mockAuth.mockResolvedValueOnce(null)
+    mockAuth.mockResolvedValueOnce(null as any)
     const result = await recordPayment(new FormData())
     expect(result).toEqual({ error: "Unauthorized" })
   })
@@ -100,7 +100,7 @@ describe("deletePayment", () => {
   beforeEach(() => vi.clearAllMocks())
 
   it("returns Unauthorized if not logged in", async () => {
-    mockAuth.mockResolvedValueOnce(null)
+    mockAuth.mockResolvedValueOnce(null as any)
     const result = await deletePayment("pay-1")
     expect(result).toEqual({ error: "Unauthorized" })
   })

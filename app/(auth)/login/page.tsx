@@ -1,12 +1,11 @@
 "use client"
 
-import Link from "next/link"
 import { useState } from "react"
-import { signIn } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { signIn, type SignInResponse } from "next-auth/react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { RiEyeLine, RiEyeOffLine } from "@remixicon/react"
 
 type FieldErrors = { email?: string; password?: string }
 
@@ -20,10 +19,10 @@ function validateForm(email: string, password: string): FieldErrors {
 }
 
 export default function LoginPage() {
-  const router = useRouter()
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [formError, setFormError]     = useState<string | null>(null)
   const [pending, setPending]         = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   function clearFieldError(field: keyof FieldErrors) {
     if (fieldErrors[field]) setFieldErrors(prev => ({ ...prev, [field]: undefined }))
@@ -48,16 +47,16 @@ export default function LoginPage() {
     setPending(true)
 
     try {
-      const res = await (signIn as Function)("credentials", {
+      const res = await signIn("credentials", {
         email,
         password,
         redirect: false,
-      }) as { ok?: boolean } | undefined
+      }) as SignInResponse | undefined
 
-      if (!res?.ok) {
+      if (res?.error) {
         setFormError("Incorrect email or password. Please try again.")
       } else {
-        router.push("/dashboard")
+        window.location.href = "/dashboard"
       }
     } catch {
       setFormError("Something went wrong. Please try again.")
@@ -107,15 +106,26 @@ export default function LoginPage() {
             <label htmlFor="password" className="text-sm font-medium text-foreground">
               Password
             </label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              placeholder="••••••••"
-              autoComplete="current-password"
-              onChange={() => clearFieldError("password")}
-              className={cn(fieldErrors.password && "border-destructive focus-visible:ring-destructive/30")}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                onChange={() => clearFieldError("password")}
+                className={cn("pr-10", fieldErrors.password && "border-destructive focus-visible:ring-destructive/30")}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground transition-colors"
+                tabIndex={-1}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <RiEyeOffLine className="size-4" /> : <RiEyeLine className="size-4" />}
+              </button>
+            </div>
             {fieldErrors.password && (
               <p className="text-xs text-destructive">{fieldErrors.password}</p>
             )}

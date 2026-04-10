@@ -24,7 +24,7 @@ describe("createVendor", () => {
   beforeEach(() => vi.clearAllMocks())
 
   it("returns error if not authorized", async () => {
-    mockAuth.mockResolvedValueOnce(null)
+    mockAuth.mockResolvedValueOnce(null as any)
     const result = await createVendor(new FormData())
     expect(result).toEqual({ error: "Unauthorized" })
   })

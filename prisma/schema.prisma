@@ -46,6 +46,8 @@ model Session {
   expires      DateTime
   createdAt    DateTime @default(now())
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // ─── Roles & Permissions ──────────────────────────────────────────────────────
@@ -133,6 +135,11 @@ model Subscription {
   payments            Payment[]
   notificationConfigs NotificationConfig[]
   notificationLogs    NotificationLog[]
+
+  @@index([renewalDate])
+  @@index([status])
+  @@index([responsibleId])
+  @@index([vendorId])
 }
 
 // ─── Payments ─────────────────────────────────────────────────────────────────
@@ -150,6 +157,9 @@ model Payment {
 
   subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
   paidBy       User?        @relation(fields: [paidById], references: [id])
+
+  @@index([subscriptionId])
+  @@index([paidById])
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────
@@ -175,6 +185,9 @@ model NotificationLog {
   createdAt      DateTime  @default(now())
 
   subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, type, scheduledFor])
+  @@index([subscriptionId])
 }
 
 // ─── Enums ────────────────────────────────────────────────────────────────────

@@ -20,11 +20,11 @@ export default auth((req) => {
     }
   }
 
-  if ((pathname === "/login" || pathname === "/signup") && isLoggedIn) {
+  if (pathname === "/login" && isLoggedIn) {
     return Response.redirect(new URL("/dashboard", req.url))
   }
 })
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/signup"],
+  matcher: ["/dashboard/:path*", "/login"],
 }

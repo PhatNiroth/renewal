@@ -5,10 +5,15 @@ export const dynamic = "force-dynamic"
 
 export async function GET(req: NextRequest) {
   // Protect with a secret so only your server/cron can trigger this
-  const authHeader = req.headers.get("authorization")
-  const expected   = `Bearer ${process.env.CRON_SECRET}`
+  const cronSecret = process.env.CRON_SECRET?.trim()
+  if (!cronSecret) {
+    console.error("[cron] CRON_SECRET is not configured")
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
 
-  if (!process.env.CRON_SECRET || authHeader !== expected) {
+  const authHeader = req.headers.get("authorization")
+  const expected   = `Bearer ${cronSecret}`
+  if (authHeader !== expected) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

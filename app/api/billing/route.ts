@@ -7,8 +7,17 @@ export async function GET() {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const payments = await db.payment.findMany({
+    where: {
+      subscription: { responsibleId: session.user.id },
+    },
     include: {
-      subscription: { include: { vendor: true } },
+      subscription: {
+        select: {
+          id: true,
+          planName: true,
+          vendor: { select: { id: true, name: true } },
+        },
+      },
       paidBy: { select: { id: true, name: true, email: true } },
     },
     orderBy: { paidAt: "desc" },

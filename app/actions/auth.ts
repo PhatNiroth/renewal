@@ -12,7 +12,9 @@ export async function signup(formData: FormData): Promise<ActionResult> {
   const email = formData.get("email") as string
   const password = formData.get("password") as string
 
-  if (!email || !password) {
+  const normalizedEmail = email?.toLowerCase().trim()
+
+  if (!normalizedEmail || !password) {
     return { error: "Email and password are required" }
   }
   if (password.length < 8) {
@@ -20,14 +22,14 @@ export async function signup(formData: FormData): Promise<ActionResult> {
   }
 
   try {
-    const existing = await db.user.findUnique({ where: { email } })
+    const existing = await db.user.findUnique({ where: { email: normalizedEmail } })
     if (existing) {
       return { error: "An account with this email already exists" }
     }
 
     const hashed = await bcrypt.hash(password, 12)
     await db.user.create({
-      data: { name: name || null, email, password: hashed },
+      data: { name: name || null, email: normalizedEmail, password: hashed },
     })
 
     return { success: true }

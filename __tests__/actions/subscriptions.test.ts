@@ -39,7 +39,7 @@ describe("createSubscription", () => {
   beforeEach(() => vi.clearAllMocks())
 
   it("returns Unauthorized if not logged in", async () => {
-    mockAuth.mockResolvedValueOnce(null)
+    mockAuth.mockResolvedValueOnce(null as any)
     const fd = new FormData()
     const result = await createSubscription(fd)
     expect(result).toEqual({ error: "Unauthorized" })
@@ -113,7 +113,7 @@ describe("cancelSubscription", () => {
   beforeEach(() => vi.clearAllMocks())
 
   it("returns Unauthorized if not logged in", async () => {
-    mockAuth.mockResolvedValueOnce(null)
+    mockAuth.mockResolvedValueOnce(null as any)
     const result = await cancelSubscription("sub-1")
     expect(result).toEqual({ error: "Unauthorized" })
   })
@@ -136,7 +136,7 @@ describe("markAsRenewed", () => {
   beforeEach(() => vi.clearAllMocks())
 
   it("returns Unauthorized if not logged in", async () => {
-    mockAuth.mockResolvedValueOnce(null)
+    mockAuth.mockResolvedValueOnce(null as any)
     const result = await markAsRenewed("sub-1")
     expect(result).toEqual({ error: "Unauthorized" })
   })

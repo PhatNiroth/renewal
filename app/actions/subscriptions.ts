@@ -8,8 +8,10 @@ import { nextRenewalDate } from "@/lib/renewal-utils"
 
 type ActionResult = { error: string } | { success: true }
 
-function getUser(session: Awaited<ReturnType<typeof auth>>) {
-  return session?.user as { isAdmin?: boolean; permissions?: Record<string, { add?: boolean; edit?: boolean; delete?: boolean }> } | undefined
+type SessionUser = { id?: string; isAdmin?: boolean; permissions?: Record<string, { add?: boolean; edit?: boolean; delete?: boolean }> }
+
+function getUser(session: { user?: SessionUser } | null): SessionUser | undefined {
+  return session?.user as SessionUser | undefined
 }
 
 export async function createSubscription(formData: FormData): Promise<ActionResult> {

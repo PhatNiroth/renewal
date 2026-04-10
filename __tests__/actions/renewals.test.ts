@@ -131,7 +131,7 @@ describe("markAsRenewed() — permissions", () => {
   })
 
   it("blocks unauthenticated user", async () => {
-    mockAuth.mockResolvedValueOnce(null)
+    mockAuth.mockResolvedValueOnce(null as any)
     const result = await markAsRenewed("sub-1")
     expect(result).toEqual({ error: "Unauthorized" })
   })

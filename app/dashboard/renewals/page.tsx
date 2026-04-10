@@ -24,7 +24,7 @@ export default async function RenewalsPage() {
   const session = await auth()
   if (!session?.user) redirect("/login")
 
-  const u = session.user as { isAdmin?: boolean; permissions?: Record<string, { view?: boolean }> }
+  const u = session.user as { isAdmin?: boolean; permissions?: Record<string, { view?: boolean; edit?: boolean }> }
   if (!u.isAdmin && !u.permissions?.RENEWALS?.view) redirect("/dashboard")
 
   const canRenew = u.isAdmin || !!u.permissions?.RENEWALS?.edit

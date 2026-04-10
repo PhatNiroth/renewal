@@ -6,8 +6,10 @@ import { revalidatePath } from "next/cache"
 
 type ActionResult = { error: string } | { success: true }
 
-function getUser(session: Awaited<ReturnType<typeof auth>>) {
-  return session?.user as { id?: string; isAdmin?: boolean; permissions?: Record<string, { add?: boolean; delete?: boolean }> } | undefined
+type SessionUser = { id?: string; isAdmin?: boolean; permissions?: Record<string, { add?: boolean; delete?: boolean }> }
+
+function getUser(session: { user?: SessionUser } | null): SessionUser | undefined {
+  return session?.user as SessionUser | undefined
 }
 
 export async function recordPayment(formData: FormData): Promise<ActionResult> {

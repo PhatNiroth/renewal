@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { toast } from "react-hot-toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { RiAddLine, RiEditLine, RiDeleteBinLine, RiLoader4Line } from "@remixicon/react"
 import { Modal } from "@/components/ui/modal"
 
-const MODULES = ["SUBSCRIPTIONS", "RENEWALS", "VENDORS", "VENDOR_CATEGORIES"] as const
+const MODULES = ["SUBSCRIPTIONS", "RENEWALS", "VENDORS", "VENDOR_CATEGORIES", "PAYMENTS"] as const
 type ModuleName = typeof MODULES[number]
 type PermMap = Record<ModuleName, { view: boolean; add: boolean; edit: boolean; delete: boolean }>
 const ACTIONS = ["view", "add", "edit", "delete"] as const
@@ -121,8 +122,8 @@ export default function AdminRolesPage() {
       body: JSON.stringify({ name: newName, permissions: newPerms }),
     })
     setSaving(false)
-    if (!res.ok) { const j = await res.json(); setAddError(j.error); return }
-    setShowAdd(false); setNewName(""); setNewPerms(emptyPerms()); load()
+    if (!res.ok) { const j = await res.json(); setAddError(j.error); toast.error("Failed to create role"); return }
+    toast.success("Role created"); setShowAdd(false); setNewName(""); setNewPerms(emptyPerms()); load()
   }
 
   async function handleEdit() {
@@ -134,8 +135,8 @@ export default function AdminRolesPage() {
       body: JSON.stringify({ name: editName, permissions: editPerms }),
     })
     setSaving(false)
-    if (!res.ok) { const j = await res.json(); setEditError(j.error); return }
-    setEditing(null); load()
+    if (!res.ok) { const j = await res.json(); setEditError(j.error); toast.error("Failed to save role"); return }
+    toast.success("Role saved"); setEditing(null); load()
   }
 
   async function handleDelete() {
@@ -143,8 +144,8 @@ export default function AdminRolesPage() {
     setSaving(true); setDeleteError(null)
     const res = await fetch(`/api/admin/roles/${deleting.id}`, { method: "DELETE" })
     setSaving(false)
-    if (!res.ok) { const j = await res.json(); setDeleteError(j.error); return }
-    setDeleting(null); load()
+    if (!res.ok) { const j = await res.json(); setDeleteError(j.error); toast.error("Failed to delete role"); return }
+    toast.success("Role deleted"); setDeleting(null); load()
   }
 
   return (

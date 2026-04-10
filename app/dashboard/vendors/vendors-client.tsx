@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "react-hot-toast"
 import { RiAddLine, RiEditLine, RiDeleteBinLine, RiLoader4Line, RiCheckLine } from "@remixicon/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +21,7 @@ type VendorRow = {
   contactEmail: string | null
   contactName: string | null
   notes: string | null
+  paymentMethod: string | null
   isActive: boolean
   _count: { subscriptions: number }
 }
@@ -53,7 +56,7 @@ function VendorFields({ categories, defaults }: { categories: CategoryInfo[]; de
       </div>
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-foreground">Website</label>
-        <Input name="website" type="url" defaultValue={defaults?.website ?? ""} placeholder="https://example.com" />
+        <Input name="website" type="text" defaultValue={defaults?.website ?? ""} placeholder="e.g. www.example.com or https://example.com" />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
@@ -64,6 +67,10 @@ function VendorFields({ categories, defaults }: { categories: CategoryInfo[]; de
           <label className="text-sm font-medium text-foreground">Contact Email</label>
           <Input name="contactEmail" type="email" defaultValue={defaults?.contactEmail ?? ""} placeholder="support@…" />
         </div>
+      </div>
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-foreground">Payment Method</label>
+        <Input name="paymentMethod" defaultValue={defaults?.paymentMethod ?? ""} placeholder="e.g. Credit Card, Bank Transfer, Invoice" />
       </div>
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-foreground">Notes</label>
@@ -85,8 +92,8 @@ function AddModal({ categories, onClose, onSuccess }: { categories: CategoryInfo
     const formData = new FormData(e.currentTarget)
     startTransition(async () => {
       const result = await createVendor(formData)
-      if ("error" in result) { setError(result.error); return }
-      onSuccess(); onClose()
+      if ("error" in result) { setError(result.error); toast.error("Failed to add vendor"); return }
+      toast.success("Vendor added"); onSuccess(); onClose()
     })
   }
 
@@ -118,8 +125,8 @@ function EditModal({ vendor, categories, onClose, onSuccess }: { vendor: VendorR
     const formData = new FormData(e.currentTarget)
     startTransition(async () => {
       const result = await updateVendor(vendor.id, formData)
-      if ("error" in result) { setError(result.error); return }
-      onSuccess(); onClose()
+      if ("error" in result) { setError(result.error); toast.error("Failed to update vendor"); return }
+      toast.success("Vendor updated"); onSuccess(); onClose()
     })
   }
 
@@ -148,8 +155,8 @@ function DeleteModal({ vendor, onClose, onSuccess }: { vendor: VendorRow; onClos
   function handleDelete() {
     startTransition(async () => {
       const res = await fetch(`/api/admin/vendors/${vendor.id}`, { method: "DELETE" })
-      if (!res.ok) { const j = await res.json(); setError(j.error); return }
-      onSuccess(); onClose()
+      if (!res.ok) { const j = await res.json(); setError(j.error); toast.error("Failed to delete vendor"); return }
+      toast.success("Vendor deleted"); onSuccess(); onClose()
     })
   }
 
@@ -191,11 +198,12 @@ export default function VendorsClient({
   canEdit: boolean
   canDelete: boolean
 }) {
+  const router = useRouter()
   const [showAdd, setShowAdd]       = useState(false)
   const [editing, setEditing]       = useState<VendorRow | null>(null)
   const [deleting, setDeleting]     = useState<VendorRow | null>(null)
 
-  function reload() { window.location.reload() }
+  function reload() { router.refresh() }
 
   return (
     <>
@@ -227,6 +235,7 @@ export default function VendorsClient({
                   <th className="px-6 py-3 text-left font-medium text-muted-foreground">Category</th>
                   <th className="px-6 py-3 text-left font-medium text-muted-foreground">Website</th>
                   <th className="px-6 py-3 text-left font-medium text-muted-foreground">Contact</th>
+                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Payment Method</th>
                   <th className="px-6 py-3 text-left font-medium text-muted-foreground">Subs.</th>
                   {(canEdit || canDelete) && <th className="px-6 py-3" />}
                 </tr>
@@ -277,6 +286,7 @@ export default function VendorsClient({
                       {v.contactEmail && <p className="text-xs">{v.contactEmail}</p>}
                       {!v.contactName && !v.contactEmail && <span className="opacity-40">—</span>}
                     </td>
+                    <td className="px-6 py-3.5 text-muted-foreground">{v.paymentMethod ?? <span className="opacity-40">—</span>}</td>
                     <td className="px-6 py-3.5 text-muted-foreground">{v._count.subscriptions}</td>
                     {(canEdit || canDelete) && (
                       <td className="px-6 py-3.5">

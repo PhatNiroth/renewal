@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   const existing = await db.user.findUnique({ where: { email: email.trim() } })
   if (existing) return NextResponse.json({ error: "Email already in use" }, { status: 400 })
 
-  const hashed = await bcrypt.hash(password, 10)
+  const hashed = await bcrypt.hash(password, 12)
   const user = await db.user.create({
     data: {
       name:     name?.trim() || null,

@@ -21,7 +21,7 @@ export async function PATCH(req: Request) {
   const valid = await bcrypt.compare(currentPassword, user.password)
   if (!valid) return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 })
 
-  const hashed = await bcrypt.hash(newPassword, 10)
+  const hashed = await bcrypt.hash(newPassword, 12)
   await db.user.update({ where: { id: session.user.id }, data: { password: hashed } })
 
   return NextResponse.json({ success: true })

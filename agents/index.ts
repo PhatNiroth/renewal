@@ -99,3 +99,12 @@ export {
   type DocumentationInput,
   type GeneratedDocs,
 } from "./dev/documentation.agent"
+
+// Runs the full pipeline (Plan → Generate → Review → Test → Audit → Document)
+export {
+  runFeaturePipeline,
+  type FeaturePipelineInput,
+  type FeaturePipelineResult,
+  type PipelineStepResult,
+  type PipelineStepStatus,
+} from "./dev/feature-pipeline.agent"

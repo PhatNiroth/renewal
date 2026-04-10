@@ -33,9 +33,7 @@ export async function signup(formData: FormData): Promise<ActionResult> {
     return { success: true }
   } catch (err) {
     console.error("Signup error:", err)
-    // TODO: remove specific error in production
-    const message = err instanceof Error ? err.message : String(err)
-    return { error: `[DEBUG] ${message}` }
+    return { error: "Something went wrong. Please try again." }
   }
 }
 

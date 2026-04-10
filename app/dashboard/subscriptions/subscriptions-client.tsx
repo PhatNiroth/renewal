@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import {
   RiAddLine, RiSearchLine, RiFilterLine,
   RiArrowUpLine, RiArrowDownLine, RiCheckLine,
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Modal } from "@/components/ui/modal"
 import { createSubscription, updateSubscription, deleteSubscription } from "@/app/actions/subscriptions"
+import { toast } from "react-hot-toast"
 import type { Subscription, Vendor, User } from "@prisma/client"
 
 type SubscriptionFull = Subscription & { vendor: Vendor; responsible: User | null }
@@ -27,6 +29,24 @@ const statusConfig: Record<string, { label: string; className: string; icon: Rea
 
 const cycleLabel: Record<string, string> = {
   MONTHLY: "Monthly", QUARTERLY: "Quarterly", YEARLY: "Yearly", ONE_TIME: "One-time", CUSTOM: "Custom",
+}
+
+const DEPARTMENTS: { value: string; label: string }[] = [
+  { value: "IT",          label: "IT / Technology"         },
+  { value: "FINANCE",     label: "Finance / Accounting"    },
+  { value: "OPERATIONS",  label: "Operations"              },
+  { value: "HR",          label: "Human Resources"         },
+  { value: "MARKETING",   label: "Marketing"               },
+  { value: "SALES",       label: "Sales"                   },
+  { value: "LEGAL",       label: "Legal"                   },
+  { value: "MANAGEMENT",  label: "Management / Executive"  },
+  { value: "SUPPORT",     label: "Customer Support"        },
+  { value: "PROCUREMENT", label: "Procurement"             },
+]
+
+function deptLabel(value: string | null | undefined) {
+  if (!value) return null
+  return DEPARTMENTS.find(d => d.value === value)?.label ?? value
 }
 
 const ALL_STATUSES = ["ACTIVE", "EXPIRING_SOON", "EXPIRED", "CANCELLED", "PENDING"]
@@ -68,8 +88,8 @@ function AddSubscriptionModal({
     const formData = new FormData(e.currentTarget)
     startTransition(async () => {
       const result = await createSubscription(formData)
-      if ("error" in result) { setError(result.error) }
-      else { onSuccess(); onClose() }
+      if ("error" in result) { setError(result.error); toast.error("Failed to add subscription") }
+      else { toast.success("Subscription added"); onSuccess(); onClose() }
     })
   }
 
@@ -94,7 +114,10 @@ function AddSubscriptionModal({
 
           <div className="col-span-2 space-y-1.5">
             <label className="text-sm font-medium text-foreground">Department</label>
-            <Input name="department" placeholder="e.g. IT, Finance, Operations" />
+            <select name="department" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+              <option value="">— None —</option>
+              {DEPARTMENTS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+            </select>
           </div>
 
           <div className="space-y-1.5">
@@ -183,9 +206,10 @@ function EditSubscriptionModal({
     const billingCycle = fd.get("billingCycle") as "MONTHLY" | "QUARTERLY" | "YEARLY" | "ONE_TIME" | "CUSTOM"
     const customDaysRaw = fd.get("customDays") as string
     startTransition(async () => {
+      const deptVal = fd.get("department") as string
       const result = await updateSubscription(sub.id, {
         planName:      fd.get("planName") as string,
-        department:    (fd.get("department") as string) || null,
+        department:    (deptVal || null) as import("@prisma/client").Department | null,
         cost:          costCents,
         billingCycle,
         customDays:    billingCycle === "CUSTOM" && customDaysRaw ? parseInt(customDaysRaw) : null,
@@ -195,8 +219,8 @@ function EditSubscriptionModal({
         notes:         (fd.get("notes") as string) || null,
         documentPath:  (fd.get("documentPath") as string) || null,
       })
-      if ("error" in result) { setError(result.error) }
-      else { onSuccess(); onClose() }
+      if ("error" in result) { setError(result.error); toast.error("Failed to save changes") }
+      else { toast.success("Changes saved"); onSuccess(); onClose() }
     })
   }
 
@@ -218,7 +242,10 @@ function EditSubscriptionModal({
 
           <div className="col-span-2 space-y-1.5">
             <label className="text-sm font-medium text-foreground">Department</label>
-            <Input name="department" defaultValue={(sub as any).department ?? ""} placeholder="e.g. IT, Finance, Operations" />
+            <select name="department" defaultValue={(sub as any).department ?? ""} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+              <option value="">— None —</option>
+              {DEPARTMENTS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+            </select>
           </div>
 
           <div className="space-y-1.5">
@@ -299,6 +326,7 @@ export default function SubscriptionsClient({
   canEdit: boolean
   canAdd: boolean
 }) {
+  const router = useRouter()
   const [search, setSearch]               = useState("")
   const [statusFilter, setStatusFilter]   = useState("ALL")
   const [deptFilter, setDeptFilter]       = useState("ALL")
@@ -315,7 +343,8 @@ export default function SubscriptionsClient({
     else { setSortKey(key); setSortDir("asc") }
   }
 
-  const departments = ["ALL", ...Array.from(new Set(subscriptions.map(s => (s as any).department).filter(Boolean))).sort()]
+  const usedDepts = new Set(subscriptions.map(s => (s as any).department).filter(Boolean))
+  const activeDepts = DEPARTMENTS.filter(d => usedDepts.has(d.value))
 
   const filtered = subscriptions
     .filter(s => statusFilter === "ALL" || s.status === statusFilter)
@@ -323,7 +352,8 @@ export default function SubscriptionsClient({
     .filter(s => {
       if (!search) return true
       const q = search.toLowerCase()
-      return s.vendor.name.toLowerCase().includes(q) || s.planName.toLowerCase().includes(q) || ((s as any).department ?? "").toLowerCase().includes(q)
+      const dLabel = deptLabel((s as any).department) ?? ""
+      return s.vendor.name.toLowerCase().includes(q) || s.planName.toLowerCase().includes(q) || dLabel.toLowerCase().includes(q)
     })
     .sort((a, b) => {
       let cmp = 0
@@ -342,8 +372,8 @@ export default function SubscriptionsClient({
   function handleDelete(id: string) {
     startTransition(async () => {
       const result = await deleteSubscription(id)
-      if ("error" in result) { setDeleteError(result.error) }
-      else { setDeleting(null); setDeleteError(null) }
+      if ("error" in result) { setDeleteError(result.error); toast.error("Failed to delete subscription") }
+      else { toast.success("Subscription deleted"); setDeleting(null); setDeleteError(null) }
     })
   }
 
@@ -354,7 +384,7 @@ export default function SubscriptionsClient({
           vendors={vendors}
           users={users}
           onClose={() => setShowModal(false)}
-          onSuccess={() => window.location.reload()}
+          onSuccess={() => router.refresh()}
         />
       )}
 
@@ -363,7 +393,7 @@ export default function SubscriptionsClient({
           sub={editing}
           users={users}
           onClose={() => setEditing(null)}
-          onSuccess={() => window.location.reload()}
+          onSuccess={() => router.refresh()}
         />
       )}
 
@@ -426,18 +456,26 @@ export default function SubscriptionsClient({
                 ))}
               </div>
             </div>
-            {departments.length > 1 && (
+            {activeDepts.length > 0 && (
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs text-muted-foreground shrink-0">Department:</span>
-                {departments.map(d => (
+                <button
+                  onClick={() => setDeptFilter("ALL")}
+                  className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                    deptFilter === "ALL" ? "bg-primary text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  All
+                </button>
+                {activeDepts.map(d => (
                   <button
-                    key={d}
-                    onClick={() => setDeptFilter(d)}
+                    key={d.value}
+                    onClick={() => setDeptFilter(d.value)}
                     className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                      deptFilter === d ? "bg-primary text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      deptFilter === d.value ? "bg-primary text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"
                     }`}
                   >
-                    {d === "ALL" ? "All Departments" : d}
+                    {d.label}
                   </button>
                 ))}
               </div>
@@ -488,7 +526,7 @@ export default function SubscriptionsClient({
                     <tr key={sub.id} className="hover:bg-muted/40 transition-colors">
                       <td className="px-6 py-3.5 font-medium text-foreground">{sub.vendor.name}</td>
                       <td className="px-6 py-3.5 text-muted-foreground">{sub.planName}</td>
-                      <td className="px-6 py-3.5 text-muted-foreground">{(sub as any).department ?? <span className="text-muted-foreground/40">—</span>}</td>
+                      <td className="px-6 py-3.5 text-muted-foreground">{deptLabel((sub as any).department) ?? <span className="text-muted-foreground/40">—</span>}</td>
                       <td className="px-6 py-3.5">
                         <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${status?.className}`}>
                           <StatusIcon className="size-3" />

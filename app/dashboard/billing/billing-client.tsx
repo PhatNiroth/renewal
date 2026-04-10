@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import {
   RiAddLine, RiSearchLine, RiFilterLine, RiCheckLine,
   RiLoader4Line, RiArrowUpLine, RiArrowDownLine, RiDeleteBinLine,
@@ -126,6 +127,7 @@ export default function BillingClient({
   canAdd: boolean
   canDelete: boolean
 }) {
+  const router = useRouter()
   const [search, setSearch]       = useState("")
   const [showModal, setShowModal] = useState(false)
   const [deleting, setDeleting]   = useState<PaymentRow | null>(null)
@@ -183,7 +185,7 @@ export default function BillingClient({
         <AddPaymentModal
           subscriptions={subscriptions}
           onClose={() => setShowModal(false)}
-          onSuccess={() => window.location.reload()}
+          onSuccess={() => router.refresh()}
         />
       )}
 

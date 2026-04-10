@@ -15,7 +15,6 @@ A full-stack Subscription and Renewal Management System built with Next.js 16.2.
 | Styling | Tailwind CSS v4 |
 | Database | PostgreSQL via Prisma ORM |
 | Auth | NextAuth.js v5 (App Router adapter) |
-| Payments | Stripe (subscriptions + webhooks) |
 | Email | Resend (transactional emails) |
 | AI | Anthropic SDK (`@anthropic-ai/sdk`) |
 
@@ -51,10 +50,7 @@ app/
 │   ├── subscriptions/
 │   │   ├── route.ts            # GET list, POST create
 │   │   └── [id]/route.ts       # GET, PATCH, DELETE
-│   ├── plans/route.ts
-│   ├── billing/route.ts
-│   └── webhooks/
-│       └── stripe/route.ts     # Stripe webhook handler
+│   └── billing/route.ts
 ├── actions/                    # Server Actions
 │   ├── auth.ts
 │   ├── subscriptions.ts
@@ -178,10 +174,9 @@ enum NotifType {
 
 ### Subscription Lifecycle
 1. User signs up → automatically assigned **Free** plan
-2. User upgrades → Stripe Checkout or Billing Portal
-3. Subscription renews automatically unless `cancelAtPeriodEnd = true`
-4. On renewal failure → status becomes `PAST_DUE`; retry logic via Stripe
-5. After grace period (3 days past due) → status becomes `EXPIRED`
+2. Subscription renews automatically unless `cancelAtPeriodEnd = true`
+3. On renewal failure → status becomes `PAST_DUE`
+4. After grace period (3 days past due) → status becomes `EXPIRED`
 
 ### Renewal Notifications
 - Send email 7 days before renewal
@@ -197,7 +192,7 @@ enum NotifType {
 | Enterprise | $49 | Monthly / $490 Yearly | All Pro + team seats, admin panel, API access |
 
 ### Upgrades & Downgrades
-- Upgrade: immediate proration via Stripe
+- Upgrade: immediate change
 - Downgrade: takes effect at end of current period
 - Cancellation: `cancelAtPeriodEnd = true`; access until period end
 
@@ -207,22 +202,13 @@ enum NotifType {
 
 ### Subscriptions
 - `GET /api/subscriptions` — list authenticated user's subscriptions
-- `POST /api/subscriptions` — create subscription (Stripe Checkout)
+- `POST /api/subscriptions` — create subscription
 - `GET /api/subscriptions/[id]` — get single subscription
 - `PATCH /api/subscriptions/[id]` — update (cancel, change plan)
 - `DELETE /api/subscriptions/[id]` — cancel immediately (admin only)
 
-### Plans
-- `GET /api/plans` — list all active plans (public)
-
 ### Billing
 - `GET /api/billing` — list invoices for authenticated user
-- `POST /api/billing/portal` — create Stripe Billing Portal session
-
-### Webhooks
-- `POST /api/webhooks/stripe` — handles:
-  - `customer.subscription.created/updated/deleted`
-  - `invoice.payment_succeeded/failed/created`
 
 ---
 
@@ -256,22 +242,6 @@ export async function login(formData: FormData) { ... }
 
 ---
 
-## Stripe Integration
-
-```ts
-// lib/stripe.ts
-import Stripe from 'stripe'
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
-})
-```
-
-**Checkout flow:** User clicks upgrade → Server Action creates Checkout session → redirect to Stripe → Stripe fires `customer.subscription.created` webhook → DB updated → confirmation email sent.
-
-**Webhook route** must export `export const dynamic = 'force-dynamic'` and read the raw body for signature verification via `stripe.webhooks.constructEvent()`.
-
----
-
 ## Environment Variables
 
 ```env
@@ -281,15 +251,6 @@ DATABASE_URL=postgresql://...
 # NextAuth
 NEXTAUTH_SECRET=
 NEXTAUTH_URL=http://localhost:3000
-
-# Stripe
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_PRICE_PRO_MONTHLY=price_...
-STRIPE_PRICE_PRO_YEARLY=price_...
-STRIPE_PRICE_ENTERPRISE_MONTHLY=price_...
-STRIPE_PRICE_ENTERPRISE_YEARLY=price_...
 
 # Email
 RESEND_API_KEY=re_...
@@ -309,7 +270,6 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 - Tailwind v4 syntax: `@import "tailwindcss"` in globals.css — not `@tailwind base/components/utilities`
 - Prisma client is a singleton in `lib/db.ts`; never call `new PrismaClient()` in components
 - API routes return `{ error: string }` with appropriate HTTP status on failure
-- Stripe webhook handler always returns HTTP `200` to Stripe; log internal errors separately
 
 ---
 
@@ -328,17 +288,9 @@ npx prisma db seed
 # Run dev server
 npm run dev
 
-# Listen for Stripe webhooks locally (separate terminal)
-stripe listen --forward-to localhost:3000/api/webhooks/stripe
-
 # Lint
 npm run lint
 ```
-
-### Stripe test cards
-- `4242 4242 4242 4242` — successful payment
-- `4000 0000 0000 9995` — card declined
-- `4000 0025 0000 3155` — 3D Secure required
 
 ---
 
@@ -358,4 +310,3 @@ npm run lint
 - `@/*` path alias resolves to the project root (`/BTNG/my-claude-app`).
 - Prisma client must be a singleton; never instantiate `new PrismaClient()` directly in components.
 - All monetary values are in **cents** everywhere except the display layer.
-- Stripe webhook route must disable default body parsing to read the raw body for signature verification.

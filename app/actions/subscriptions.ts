@@ -3,24 +3,13 @@
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
-import { BillingCycle, SubscriptionStatus } from "@prisma/client"
+import { BillingCycle, Department, SubscriptionStatus } from "@prisma/client"
+import { nextRenewalDate } from "@/lib/renewal-utils"
 
 type ActionResult = { error: string } | { success: true }
 
 function getUser(session: Awaited<ReturnType<typeof auth>>) {
   return session?.user as { isAdmin?: boolean; permissions?: Record<string, { add?: boolean; edit?: boolean; delete?: boolean }> } | undefined
-}
-
-function nextRenewalDate(current: Date, billingCycle: BillingCycle, customDays?: number | null): Date {
-  const next = new Date(current)
-  switch (billingCycle) {
-    case BillingCycle.MONTHLY:   next.setMonth(next.getMonth() + 1); break
-    case BillingCycle.QUARTERLY: next.setMonth(next.getMonth() + 3); break
-    case BillingCycle.YEARLY:    next.setFullYear(next.getFullYear() + 1); break
-    case BillingCycle.CUSTOM:    next.setDate(next.getDate() + (customDays ?? 30)); break
-    case BillingCycle.ONE_TIME:  break
-  }
-  return next
 }
 
 export async function createSubscription(formData: FormData): Promise<ActionResult> {
@@ -31,7 +20,8 @@ export async function createSubscription(formData: FormData): Promise<ActionResu
 
   const vendorId      = formData.get("vendorId") as string
   const planName      = formData.get("planName") as string
-  const department    = formData.get("department") as string | null
+  const departmentRaw = formData.get("department") as string | null
+  const department    = (departmentRaw && departmentRaw in Department) ? departmentRaw as Department : null
   const cost          = formData.get("cost") as string
   const billingCycle  = (formData.get("billingCycle") as BillingCycle) || "MONTHLY"
   const customDays    = formData.get("customDays") as string | null
@@ -81,7 +71,7 @@ export async function updateSubscription(
   subscriptionId: string,
   data: Partial<{
     planName: string
-    department: string | null
+    department: Department | null
     cost: number
     billingCycle: BillingCycle
     customDays: number | null

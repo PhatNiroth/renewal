@@ -10,6 +10,13 @@ function toSlug(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
 }
 
+function normalizeUrl(url: string | null): string | null {
+  if (!url || !url.trim()) return null
+  const trimmed = url.trim()
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed
+  return `https://${trimmed}`
+}
+
 function canManageVendors(session: Awaited<ReturnType<typeof auth>>) {
   if (!session?.user) return false
   const u = session.user as { isAdmin?: boolean; permissions?: Record<string, { add?: boolean; edit?: boolean }> }
@@ -25,7 +32,8 @@ export async function createVendor(formData: FormData): Promise<ActionResult> {
   const website      = formData.get("website") as string | null
   const contactEmail = formData.get("contactEmail") as string | null
   const contactName  = formData.get("contactName") as string | null
-  const notes        = formData.get("notes") as string | null
+  const notes         = formData.get("notes") as string | null
+  const paymentMethod = formData.get("paymentMethod") as string | null
 
   if (!name) return { error: "Vendor name is required" }
 
@@ -36,11 +44,12 @@ export async function createVendor(formData: FormData): Promise<ActionResult> {
       data: {
         name,
         slug,
-        categoryId:   categoryId || null,
-        website:      website      || null,
-        contactEmail: contactEmail || null,
-        contactName:  contactName  || null,
-        notes:        notes        || null,
+        categoryId:    categoryId || null,
+        website:       normalizeUrl(website),
+        contactEmail:  contactEmail  || null,
+        contactName:   contactName   || null,
+        notes:         notes         || null,
+        paymentMethod: paymentMethod || null,
       },
     })
     revalidatePath("/dashboard/vendors")
@@ -61,19 +70,21 @@ export async function updateVendor(vendorId: string, formData: FormData): Promis
   const website      = formData.get("website") as string | null
   const contactEmail = formData.get("contactEmail") as string | null
   const contactName  = formData.get("contactName") as string | null
-  const notes        = formData.get("notes") as string | null
+  const notes         = formData.get("notes") as string | null
+  const paymentMethod = formData.get("paymentMethod") as string | null
 
   try {
     await db.vendor.update({
       where: { id: vendorId },
       data: {
         name,
-        slug:         toSlug(name),
-        categoryId:   categoryId || null,
-        website:      website      || null,
-        contactEmail: contactEmail || null,
-        contactName:  contactName  || null,
-        notes:        notes        || null,
+        slug:          toSlug(name),
+        categoryId:    categoryId || null,
+        website:       normalizeUrl(website),
+        contactEmail:  contactEmail  || null,
+        contactName:   contactName   || null,
+        notes:         notes         || null,
+        paymentMethod: paymentMethod || null,
       },
     })
     revalidatePath("/dashboard/vendors")

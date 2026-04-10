@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { RiCheckLine, RiLoader4Line } from "@remixicon/react"
 import { markAsRenewed } from "@/app/actions/subscriptions"
+import { toast } from "react-hot-toast"
 
 export function MarkRenewedButton({ subscriptionId }: { subscriptionId: string }) {
   const [loading, setLoading] = useState(false)
@@ -17,8 +18,10 @@ export function MarkRenewedButton({ subscriptionId }: { subscriptionId: string }
     setLoading(false)
     if ("error" in result) {
       setError(result.error)
+      toast.error("Failed to mark as renewed")
     } else {
       setDone(true)
+      toast.success("Marked as renewed")
     }
   }
 

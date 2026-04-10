@@ -98,8 +98,9 @@ model Vendor {
   website      String?
   contactEmail String?
   contactName  String?
-  notes        String?
-  isActive     Boolean  @default(true)
+  notes         String?
+  paymentMethod String?
+  isActive      Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -113,7 +114,7 @@ model Subscription {
   id            String             @id @default(cuid())
   vendorId      String
   planName      String
-  department    String?
+  department    Department?
   cost          Int                // in cents
   currency      String             @default("usd")
   billingCycle  BillingCycle       @default(MONTHLY)
@@ -184,6 +185,19 @@ enum Module {
   VENDORS
   VENDOR_CATEGORIES
   PAYMENTS
+}
+
+enum Department {
+  IT
+  FINANCE
+  OPERATIONS
+  HR
+  MARKETING
+  SALES
+  LEGAL
+  MANAGEMENT
+  SUPPORT
+  PROCUREMENT
 }
 
 enum BillingCycle {

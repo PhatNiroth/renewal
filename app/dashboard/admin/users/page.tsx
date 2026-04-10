@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { toast } from "react-hot-toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { RiAddLine, RiEditLine, RiDeleteBinLine, RiLoader4Line } from "@remixicon/react"
@@ -57,7 +58,8 @@ export default function AdminUsersPage() {
       body: JSON.stringify({ ...form, roleId: form.roleId || null }),
     })
     setSaving(false)
-    if (!res.ok) { const j = await res.json(); setError(j.error); return }
+    if (!res.ok) { const j = await res.json(); setError(j.error); toast.error("Failed to create user"); return }
+    toast.success("User created")
     setShowAdd(false)
     setForm({ name: "", email: "", password: "", roleId: "", isAdmin: false })
     load()
@@ -72,8 +74,8 @@ export default function AdminUsersPage() {
       body: JSON.stringify({ name: editForm.name, roleId: editForm.roleId || null, isAdmin: editForm.isAdmin }),
     })
     setSaving(false)
-    if (!res.ok) { const j = await res.json(); setError(j.error); return }
-    setEditing(null); load()
+    if (!res.ok) { const j = await res.json(); setError(j.error); toast.error("Failed to update user"); return }
+    toast.success("User updated"); setEditing(null); load()
   }
 
   async function handleDelete() {
@@ -81,8 +83,8 @@ export default function AdminUsersPage() {
     setSaving(true); setError(null)
     const res = await fetch(`/api/admin/users/${deleting.id}`, { method: "DELETE" })
     setSaving(false)
-    if (!res.ok) { const j = await res.json(); setError(j.error); return }
-    setDeleting(null); load()
+    if (!res.ok) { const j = await res.json(); setError(j.error); toast.error("Failed to delete user"); return }
+    toast.success("User deleted"); setDeleting(null); load()
   }
 
   return (

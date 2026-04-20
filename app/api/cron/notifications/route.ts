@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { runNotificationDispatcher } from "@/lib/notification-dispatcher"
 
 export const dynamic = "force-dynamic"
 
@@ -18,6 +17,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // Dynamic import to avoid Resend client instantiation at build time
+    const { runNotificationDispatcher } = await import("@/lib/notification-dispatcher")
     const result = await runNotificationDispatcher()
     return NextResponse.json({ ok: true, ...result })
   } catch (err) {

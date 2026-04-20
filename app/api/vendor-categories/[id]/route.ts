@@ -1,5 +1,6 @@
 import { db } from "@/lib/db"
-import { requireAdmin } from "@/lib/permissions"
+import { auth } from "@/lib/auth"
+import { getPermissions, can } from "@/lib/permissions"
 import { NextResponse } from "next/server"
 
 function toSlug(name: string) {
@@ -7,8 +8,14 @@ function toSlug(name: string) {
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { error } = await requireAdmin()
-  if (error) return error
+  const session = await auth()
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const u = session.user as { isAdmin?: boolean }
+  const perms = getPermissions(session)
+  if (!u.isAdmin && !can(perms, "VENDOR_CATEGORIES", "edit")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
 
   const { id } = await params
   const body = await req.json()
@@ -31,8 +38,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { error } = await requireAdmin()
-  if (error) return error
+  const session = await auth()
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const u = session.user as { isAdmin?: boolean }
+  const perms = getPermissions(session)
+  if (!u.isAdmin && !can(perms, "VENDOR_CATEGORIES", "delete")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
 
   const { id } = await params
   const count = await db.vendor.count({ where: { categoryId: id } })

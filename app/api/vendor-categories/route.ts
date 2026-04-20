@@ -1,5 +1,6 @@
 import { db } from "@/lib/db"
-import { requireAdmin } from "@/lib/permissions"
+import { auth } from "@/lib/auth"
+import { getPermissions, can } from "@/lib/permissions"
 import { NextResponse } from "next/server"
 
 function toSlug(name: string) {
@@ -7,8 +8,14 @@ function toSlug(name: string) {
 }
 
 export async function GET() {
-  const { error } = await requireAdmin()
-  if (error) return error
+  const session = await auth()
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const u = session.user as { isAdmin?: boolean }
+  const perms = getPermissions(session)
+  if (!u.isAdmin && !can(perms, "VENDOR_CATEGORIES", "view")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
 
   const categories = await db.vendorCategory.findMany({
     orderBy: { name: "asc" },
@@ -18,8 +25,14 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const { error } = await requireAdmin()
-  if (error) return error
+  const session = await auth()
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const u = session.user as { isAdmin?: boolean }
+  const perms = getPermissions(session)
+  if (!u.isAdmin && !can(perms, "VENDOR_CATEGORIES", "add")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
 
   const body = await req.json()
   const { name, color } = body

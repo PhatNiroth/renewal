@@ -17,7 +17,7 @@ const navItems = [
   { href: "/dashboard",                         label: "Overview",          icon: RiHome5Line,     module: null              },
   { href: "/dashboard/subscriptions",           label: "Subscriptions",     icon: RiStackLine,     module: "SUBSCRIPTIONS"   },
   { href: "/dashboard/vendors",                 label: "Vendors",           icon: RiBuildingLine,  module: "VENDORS"         },
-  { href: "/dashboard/admin/vendor-categories", label: "Vendor Categories", icon: RiPriceTag3Line, module: "VENDOR_CATEGORIES" },
+  { href: "/dashboard/vendor-categories",       label: "Vendor Categories", icon: RiPriceTag3Line, module: "VENDOR_CATEGORIES" },
   { href: "/dashboard/renewals",                label: "Upcoming Renewals", icon: RiCalendarLine,  module: "RENEWALS"        },
   { href: "/dashboard/renewal-history",         label: "Renewal History",   icon: RiHistoryLine,   module: "RENEWALS"        },
 ]
@@ -125,7 +125,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 Admin
               </p>
               {adminItems.map(({ href, label, icon: Icon }) => {
-                const active = pathname.startsWith(href) && !pathname.startsWith("/dashboard/admin/vendor-categories")
+                const active = pathname.startsWith(href)
                 return (
                   <Link
                     key={href}

@@ -6,7 +6,7 @@ const db = new PrismaClient()
 async function main() {
   console.log("Seeding database...")
 
-  const allModules = [Module.SUBSCRIPTIONS, Module.RENEWALS, Module.VENDORS, Module.PAYMENTS]
+  const allModules = [Module.SUBSCRIPTIONS, Module.RENEWALS, Module.VENDORS, Module.VENDOR_CATEGORIES, Module.PAYMENTS]
 
   const opsRole = await db.role.upsert({
     where: { name: "Operations" },
@@ -15,10 +15,11 @@ async function main() {
       isSystem: true,
       permissions: {
         create: [
-          { module: Module.SUBSCRIPTIONS, canView: true, canAdd: true,  canEdit: true,  canDelete: true  },
-          { module: Module.RENEWALS,       canView: true, canAdd: true,  canEdit: true,  canDelete: false },
-          { module: Module.VENDORS,        canView: true, canAdd: true,  canEdit: true,  canDelete: false },
-          { module: Module.PAYMENTS,       canView: true, canAdd: false, canEdit: false, canDelete: false },
+          { module: Module.SUBSCRIPTIONS,    canView: true, canAdd: true,  canEdit: true,  canDelete: true  },
+          { module: Module.RENEWALS,          canView: true, canAdd: true,  canEdit: true,  canDelete: false },
+          { module: Module.VENDORS,           canView: true, canAdd: true,  canEdit: true,  canDelete: false },
+          { module: Module.VENDOR_CATEGORIES, canView: true, canAdd: true,  canEdit: true,  canDelete: false },
+          { module: Module.PAYMENTS,          canView: true, canAdd: false, canEdit: false, canDelete: false },
         ],
       },
     },
@@ -33,10 +34,11 @@ async function main() {
       isSystem: true,
       permissions: {
         create: [
-          { module: Module.SUBSCRIPTIONS, canView: true, canAdd: true,  canEdit: true,  canDelete: false },
-          { module: Module.RENEWALS,       canView: true, canAdd: false, canEdit: false, canDelete: false },
-          { module: Module.VENDORS,        canView: true, canAdd: false, canEdit: false, canDelete: false },
-          { module: Module.PAYMENTS,       canView: true, canAdd: true,  canEdit: true,  canDelete: true  },
+          { module: Module.SUBSCRIPTIONS,    canView: true, canAdd: true,  canEdit: true,  canDelete: false },
+          { module: Module.RENEWALS,          canView: true, canAdd: false, canEdit: false, canDelete: false },
+          { module: Module.VENDORS,           canView: true, canAdd: false, canEdit: false, canDelete: false },
+          { module: Module.VENDOR_CATEGORIES, canView: true, canAdd: false, canEdit: false, canDelete: false },
+          { module: Module.PAYMENTS,          canView: true, canAdd: true,  canEdit: true,  canDelete: true  },
         ],
       },
     },

@@ -94,7 +94,7 @@ export default function AdminVendorCategoriesPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const res = await fetch("/api/admin/vendor-categories")
+    const res = await fetch("/api/vendor-categories")
     setCategories(await res.json())
     setLoading(false)
   }, [])
@@ -104,7 +104,7 @@ export default function AdminVendorCategoriesPage() {
   async function handleAdd() {
     if (!newName.trim()) { setError("Name is required"); return }
     setSaving(true); setError(null)
-    const res = await fetch("/api/admin/vendor-categories", {
+    const res = await fetch("/api/vendor-categories", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: newName, color: newColor }),
@@ -117,7 +117,7 @@ export default function AdminVendorCategoriesPage() {
   async function handleEdit() {
     if (!editing) return
     setSaving(true); setError(null)
-    const res = await fetch(`/api/admin/vendor-categories/${editing.id}`, {
+    const res = await fetch(`/api/vendor-categories/${editing.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: editName, color: editColor }),
@@ -130,7 +130,7 @@ export default function AdminVendorCategoriesPage() {
   async function handleDelete() {
     if (!deleting) return
     setSaving(true); setError(null)
-    const res = await fetch(`/api/admin/vendor-categories/${deleting.id}`, { method: "DELETE" })
+    const res = await fetch(`/api/vendor-categories/${deleting.id}`, { method: "DELETE" })
     setSaving(false)
     if (!res.ok) { const j = await res.json(); setError(j.error); return }
     setDeleting(null); load()

@@ -69,7 +69,7 @@ export default function LoginPage() {
     <div className="w-full max-w-sm">
       <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
         <div className="mb-6">
-          <h1 className="text-xl font-semibold text-foreground">Sign in to RenewTrack</h1>
+          <h1 className="text-xl font-semibold text-foreground">Sign in to Krawma Renewal</h1>
           <p className="mt-1 text-sm text-muted-foreground">Internal access only — authorised staff</p>
         </div>
 

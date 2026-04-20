@@ -8,7 +8,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="flex size-9 items-center justify-center rounded-xl bg-primary">
           <RiStackLine className="size-5 text-white" />
         </div>
-        <span className="text-xl font-semibold tracking-tight text-foreground">RenewTrack</span>
+        <span className="text-xl font-semibold tracking-tight text-foreground">Krawma Renewal</span>
       </Link>
       {children}
     </div>

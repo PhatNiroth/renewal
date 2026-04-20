@@ -78,7 +78,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex size-8 items-center justify-center rounded-xl bg-primary">
             <RiStackLine className="size-4 text-primary-foreground" />
           </div>
-          <span className="font-semibold text-sidebar-foreground tracking-tight">RenewTrack</span>
+          <span className="font-semibold text-sidebar-foreground tracking-tight">Krawma Renewal</span>
           <Button
             variant="ghost"
             size="icon-sm"

@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "RenewTrack — Internal Subscription Management",
+  title: "Krawma Renewal — Internal Subscription Management",
   description: "Internal tool for tracking company subscriptions, vendors, and renewal dates.",
 }
 

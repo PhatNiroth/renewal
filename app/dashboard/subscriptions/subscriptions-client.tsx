@@ -86,6 +86,12 @@ function AddSubscriptionModal({
     e.preventDefault()
     setError(null)
     const formData = new FormData(e.currentTarget)
+    const startDate = formData.get("startDate") as string
+    const renewalDate = formData.get("renewalDate") as string
+    if (startDate && renewalDate && new Date(renewalDate) <= new Date(startDate)) {
+      setError("Renewal date must be after start date")
+      return
+    }
     startTransition(async () => {
       const result = await createSubscription(formData)
       if ("error" in result) { setError(result.error); toast.error("Failed to add subscription") }

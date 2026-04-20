@@ -37,6 +37,7 @@ export async function createSubscription(formData: FormData): Promise<ActionResu
   if (!planName)    return { error: "Plan / service name is required" }
   if (!startDate)   return { error: "Start date is required" }
   if (!renewalDate) return { error: "Renewal date is required" }
+  if (new Date(renewalDate) <= new Date(startDate)) return { error: "Renewal date must be after start date" }
   if (billingCycle === "CUSTOM" && !customDays) return { error: "Custom duration (days) is required" }
 
   const costCents = cost ? Math.round(parseFloat(cost) * 100) : 0

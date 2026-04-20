@@ -7,6 +7,7 @@ import {
   RiHome5Line, RiStackLine, RiCalendarLine, RiShieldLine,
   RiSettings3Line, RiMenuLine, RiCloseLine, RiSunLine,
   RiMoonLine, RiBuildingLine, RiLogoutBoxLine, RiPriceTag3Line,
+  RiHistoryLine,
 } from "@remixicon/react"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
@@ -18,6 +19,7 @@ const navItems = [
   { href: "/dashboard/vendors",                 label: "Vendors",           icon: RiBuildingLine,  module: "VENDORS"         },
   { href: "/dashboard/admin/vendor-categories", label: "Vendor Categories", icon: RiPriceTag3Line, module: "VENDOR_CATEGORIES" },
   { href: "/dashboard/renewals",                label: "Upcoming Renewals", icon: RiCalendarLine,  module: "RENEWALS"        },
+  { href: "/dashboard/renewal-history",         label: "Renewal History",   icon: RiHistoryLine,   module: "RENEWALS"        },
 ]
 
 const adminItems = [

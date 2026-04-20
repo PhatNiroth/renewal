@@ -22,6 +22,7 @@ model User {
   role                Role?                @relation(fields: [roleId], references: [id])
   responsibleFor      Subscription[]       @relation("ResponsibleUser")
   payments            Payment[]
+  renewalLogs         RenewalLog[]         @relation("RenewalLogs")
   notificationTargets NotificationConfig[] @relation("NotifyUsers")
   sessions            Session[]
   notificationPref    NotificationPref?
@@ -133,6 +134,7 @@ model Subscription {
   vendor              Vendor               @relation(fields: [vendorId], references: [id])
   responsible         User?                @relation("ResponsibleUser", fields: [responsibleId], references: [id])
   payments            Payment[]
+  renewalLogs         RenewalLog[]
   notificationConfigs NotificationConfig[]
   notificationLogs    NotificationLog[]
 
@@ -140,6 +142,24 @@ model Subscription {
   @@index([status])
   @@index([responsibleId])
   @@index([vendorId])
+}
+
+// ─── Renewal Logs ────────────────────────────────────────────────────────────
+
+model RenewalLog {
+  id               String       @id @default(cuid())
+  subscriptionId   String
+  previousDate     DateTime
+  newDate          DateTime
+  renewedById      String
+  notes            String?
+  createdAt        DateTime     @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  renewedBy    User         @relation("RenewalLogs", fields: [renewedById], references: [id])
+
+  @@index([subscriptionId])
+  @@index([renewedById])
 }
 
 // ─── Payments ─────────────────────────────────────────────────────────────────

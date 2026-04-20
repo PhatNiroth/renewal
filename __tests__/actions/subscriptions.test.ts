@@ -11,6 +11,10 @@ vi.mock("@/lib/db", () => ({
       findUnique: vi.fn(),
       delete:     vi.fn(),
     },
+    renewalLog: {
+      create: vi.fn(),
+    },
+    $transaction: vi.fn(),
   },
 }))
 
@@ -160,7 +164,7 @@ describe("markAsRenewed", () => {
       id: "sub-1", billingCycle: "MONTHLY", customDays: null,
       renewalDate: new Date("2026-04-09"),
     } as any)
-    vi.mocked(mockDb.subscription.update).mockResolvedValueOnce({} as any)
+    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
 
     const result = await markAsRenewed("sub-1")
     expect(result).toEqual({ success: true })
@@ -177,7 +181,7 @@ describe("markAsRenewed", () => {
       id: "sub-1", billingCycle: "YEARLY", customDays: null,
       renewalDate: new Date("2026-04-09"),
     } as any)
-    vi.mocked(mockDb.subscription.update).mockResolvedValueOnce({} as any)
+    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
 
     await markAsRenewed("sub-1")
     const updateCall = vi.mocked(mockDb.subscription.update).mock.calls[0][0]
@@ -191,7 +195,7 @@ describe("markAsRenewed", () => {
       id: "sub-1", billingCycle: "CUSTOM", customDays: 90,
       renewalDate: new Date("2026-04-09"),
     } as any)
-    vi.mocked(mockDb.subscription.update).mockResolvedValueOnce({} as any)
+    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
 
     await markAsRenewed("sub-1")
     const updateCall = vi.mocked(mockDb.subscription.update).mock.calls[0][0]
@@ -208,7 +212,7 @@ describe("markAsRenewed", () => {
       id: "sub-1", billingCycle: "ONE_TIME", customDays: null,
       renewalDate: originalDate,
     } as any)
-    vi.mocked(mockDb.subscription.update).mockResolvedValueOnce({} as any)
+    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
 
     await markAsRenewed("sub-1")
     const updateCall = vi.mocked(mockDb.subscription.update).mock.calls[0][0]

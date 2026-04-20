@@ -10,6 +10,10 @@ vi.mock("@/lib/db", () => ({
       findUnique: vi.fn(),
       update:     vi.fn(),
     },
+    renewalLog: {
+      create: vi.fn(),
+    },
+    $transaction: vi.fn(),
   },
 }))
 
@@ -108,7 +112,7 @@ describe("markAsRenewed() — permissions", () => {
       id: "sub-1", billingCycle: "MONTHLY", customDays: null,
       renewalDate: new Date("2026-04-01"),
     } as any)
-    vi.mocked(mockDb.subscription.update).mockResolvedValueOnce({} as any)
+    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
     const result = await markAsRenewed("sub-1")
     expect(result).toEqual({ success: true })
   })
@@ -119,7 +123,7 @@ describe("markAsRenewed() — permissions", () => {
       id: "sub-1", billingCycle: "MONTHLY", customDays: null,
       renewalDate: new Date("2026-04-01"),
     } as any)
-    vi.mocked(mockDb.subscription.update).mockResolvedValueOnce({} as any)
+    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
     const result = await markAsRenewed("sub-1")
     expect(result).toEqual({ success: true })
   })
@@ -148,8 +152,10 @@ describe("markAsRenewed() — status reset", () => {
       id: "sub-1", billingCycle: "MONTHLY", customDays: null,
       renewalDate: new Date("2026-04-01"), status: "EXPIRING_SOON",
     } as any)
-    vi.mocked(mockDb.subscription.update).mockResolvedValueOnce({} as any)
+    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
     await markAsRenewed("sub-1")
+    const txArgs = vi.mocked(mockDb.$transaction).mock.calls[0][0] as any[]
+    // First item in transaction is the subscription update
     expect(mockDb.subscription.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: "ACTIVE" }) })
     )
@@ -161,7 +167,7 @@ describe("markAsRenewed() — status reset", () => {
       id: "sub-1", billingCycle: "YEARLY", customDays: null,
       renewalDate: new Date("2025-01-01"), status: "EXPIRED",
     } as any)
-    vi.mocked(mockDb.subscription.update).mockResolvedValueOnce({} as any)
+    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
     await markAsRenewed("sub-1")
     expect(mockDb.subscription.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: "ACTIVE" }) })
@@ -173,6 +179,78 @@ describe("markAsRenewed() — status reset", () => {
     vi.mocked(mockDb.subscription.findUnique).mockResolvedValueOnce(null)
     const result = await markAsRenewed("non-existent")
     expect(result).toEqual({ error: "Subscription not found" })
+  })
+})
+
+// ─── markAsRenewed — renewal log creation ───────────────────────────────────
+
+describe("markAsRenewed() — renewal log", () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it("creates a renewal log with correct data", async () => {
+    const previousDate = new Date("2026-04-01")
+    mockAuth.mockResolvedValueOnce(adminSession())
+    vi.mocked(mockDb.subscription.findUnique).mockResolvedValueOnce({
+      id: "sub-1", billingCycle: "MONTHLY", customDays: null,
+      renewalDate: previousDate,
+    } as any)
+    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
+
+    await markAsRenewed("sub-1")
+
+    expect(mockDb.renewalLog.create).toHaveBeenCalledWith({
+      data: {
+        subscriptionId: "sub-1",
+        previousDate,
+        newDate: expect.any(Date),
+        renewedById: "admin-1",
+      },
+    })
+  })
+
+  it("logs the correct new date for MONTHLY", async () => {
+    const previousDate = new Date("2026-04-01")
+    mockAuth.mockResolvedValueOnce(adminSession())
+    vi.mocked(mockDb.subscription.findUnique).mockResolvedValueOnce({
+      id: "sub-1", billingCycle: "MONTHLY", customDays: null,
+      renewalDate: previousDate,
+    } as any)
+    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
+
+    await markAsRenewed("sub-1")
+
+    const logCall = vi.mocked(mockDb.renewalLog.create).mock.calls[0][0]
+    const expectedNewDate = nextRenewalDate(previousDate, BillingCycle.MONTHLY)
+    expect(logCall.data.newDate.toDateString()).toBe(expectedNewDate.toDateString())
+  })
+
+  it("logs the user who performed the renewal", async () => {
+    mockAuth.mockResolvedValueOnce(userWithRenewalEdit())
+    vi.mocked(mockDb.subscription.findUnique).mockResolvedValueOnce({
+      id: "sub-1", billingCycle: "YEARLY", customDays: null,
+      renewalDate: new Date("2026-04-01"),
+    } as any)
+    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
+
+    await markAsRenewed("sub-1")
+
+    const logCall = vi.mocked(mockDb.renewalLog.create).mock.calls[0][0]
+    expect(logCall.data.renewedById).toBe("user-1")
+  })
+
+  it("uses transaction to ensure atomicity", async () => {
+    mockAuth.mockResolvedValueOnce(adminSession())
+    vi.mocked(mockDb.subscription.findUnique).mockResolvedValueOnce({
+      id: "sub-1", billingCycle: "MONTHLY", customDays: null,
+      renewalDate: new Date("2026-04-01"),
+    } as any)
+    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
+
+    await markAsRenewed("sub-1")
+
+    expect(mockDb.$transaction).toHaveBeenCalledTimes(1)
+    const txArgs = vi.mocked(mockDb.$transaction).mock.calls[0][0] as any[]
+    expect(txArgs).toHaveLength(2) // subscription update + renewal log create
   })
 })
 
@@ -195,12 +273,12 @@ describe("markAsRenewed() — all billing cycles", () => {
         id: "sub-1", billingCycle: c.cycle, customDays: c.customDays,
         renewalDate: new Date(c.renewalDate),
       } as any)
-      vi.mocked(mockDb.subscription.update).mockResolvedValueOnce({} as any)
+      vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
 
       await markAsRenewed("sub-1")
 
-      const call = vi.mocked(mockDb.subscription.update).mock.calls[0][0]
-      const newDate = call.data.renewalDate as Date
+      const updateCall = vi.mocked(mockDb.subscription.update).mock.calls[0][0]
+      const newDate = updateCall.data.renewalDate as Date
 
       if (c.expectedMonth !== undefined) expect(newDate.getMonth()).toBe(c.expectedMonth)
       if (c.expectedYear  !== undefined) expect(newDate.getFullYear()).toBe(c.expectedYear)
@@ -219,10 +297,10 @@ describe("markAsRenewed() — all billing cycles", () => {
       id: "sub-1", billingCycle: "ONE_TIME", customDays: null,
       renewalDate: originalDate,
     } as any)
-    vi.mocked(mockDb.subscription.update).mockResolvedValueOnce({} as any)
+    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
 
     await markAsRenewed("sub-1")
-    const call = vi.mocked(mockDb.subscription.update).mock.calls[0][0]
-    expect(call.data.renewalDate).toEqual(originalDate)
+    const updateCall = vi.mocked(mockDb.subscription.update).mock.calls[0][0]
+    expect(updateCall.data.renewalDate).toEqual(originalDate)
   })
 })

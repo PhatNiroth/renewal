@@ -131,14 +131,25 @@ export async function markAsRenewed(subscriptionId: string): Promise<ActionResul
     if (!sub) return { error: "Subscription not found" }
 
     const next = nextRenewalDate(sub.renewalDate, sub.billingCycle, sub.customDays)
+    const newDate = sub.billingCycle === BillingCycle.ONE_TIME ? sub.renewalDate : next
 
-    await db.subscription.update({
-      where: { id: subscriptionId },
-      data: {
-        status:      SubscriptionStatus.ACTIVE,
-        renewalDate: sub.billingCycle === BillingCycle.ONE_TIME ? sub.renewalDate : next,
-      },
-    })
+    await db.$transaction([
+      db.subscription.update({
+        where: { id: subscriptionId },
+        data: {
+          status:      SubscriptionStatus.ACTIVE,
+          renewalDate: newDate,
+        },
+      }),
+      db.renewalLog.create({
+        data: {
+          subscriptionId,
+          previousDate: sub.renewalDate,
+          newDate,
+          renewedById:  u.id!,
+        },
+      }),
+    ])
 
     revalidatePath("/dashboard/renewals")
     revalidatePath("/dashboard/subscriptions")

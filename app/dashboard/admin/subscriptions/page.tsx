@@ -23,7 +23,7 @@ const STATUS_COLORS: Record<string, string> = {
   PENDING:       "bg-blue-500/10 text-blue-600 dark:text-blue-400",
 }
 const STATUS_LABELS: Record<string, string> = { ACTIVE: "Active", EXPIRING_SOON: "Expiring Soon", EXPIRED: "Expired", CANCELLED: "Cancelled", PENDING: "Pending" }
-const CYCLE_LABELS:  Record<string, string> = { MONTHLY: "Monthly", QUARTERLY: "Quarterly", YEARLY: "Yearly", ONE_TIME: "One-time" }
+const CYCLE_LABELS:  Record<string, string> = { MONTHLY: "Monthly", QUARTERLY: "Quarterly", SEMESTER: "Semester", YEARLY: "Yearly", ONE_TIME: "One-time", CUSTOM: "Custom" }
 
 function fmt(n: number) { return `$${(n / 100).toLocaleString("en-US", { minimumFractionDigits: 0 })}` }
 function fmtDate(d: string) { return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) }
@@ -61,6 +61,7 @@ function SubForm({ form, setForm, vendors, users }: { form: FormData; setForm: (
           <select value={form.billingCycle} onChange={set("billingCycle")} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30">
             <option value="MONTHLY">Monthly</option>
             <option value="QUARTERLY">Quarterly</option>
+            <option value="SEMESTER">Semester</option>
             <option value="YEARLY">Yearly</option>
             <option value="ONE_TIME">One-time</option>
           </select>
@@ -164,7 +165,7 @@ export default function AdminSubscriptionsPage() {
           <p className="mt-1 text-sm text-muted-foreground">Create, edit, and delete company subscriptions.</p>
         </div>
         <Button onClick={() => { setError(null); setForm(emptyForm()); setShowAdd(true) }} className="self-start sm:self-auto">
-          <RiAddLine className="size-4" data-icon="inline-start" />Add Subscription
+          <RiAddLine className="size-4" data-icon="inline-start" />New Subscription
         </Button>
       </div>
 
@@ -291,14 +292,14 @@ export default function AdminSubscriptionsPage() {
       </div>
 
       {showAdd && (
-        <Modal title="Add Subscription" onClose={() => setShowAdd(false)}>
+        <Modal title="New Subscription" onClose={() => setShowAdd(false)}>
           <div className="space-y-4">
             {error && <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
             <SubForm form={form} setForm={setForm} vendors={vendors} users={users} />
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowAdd(false)}>Cancel</Button>
               <Button onClick={handleAdd} disabled={saving}>
-                {saving ? <><RiLoader4Line className="size-4 animate-spin" data-icon="inline-start" />Saving…</> : "Add Subscription"}
+                {saving ? <><RiLoader4Line className="size-4 animate-spin" data-icon="inline-start" />Creating…</> : "Create Subscription"}
               </Button>
             </div>
           </div>

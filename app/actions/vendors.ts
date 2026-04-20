@@ -34,6 +34,7 @@ export async function createVendor(formData: FormData): Promise<ActionResult> {
   const website      = formData.get("website") as string | null
   const contactEmail = formData.get("contactEmail") as string | null
   const contactName  = formData.get("contactName") as string | null
+  const contactPhone = formData.get("contactPhone") as string | null
   const notes         = formData.get("notes") as string | null
   const paymentMethod = formData.get("paymentMethod") as string | null
 
@@ -50,6 +51,7 @@ export async function createVendor(formData: FormData): Promise<ActionResult> {
         website:       normalizeUrl(website),
         contactEmail:  contactEmail  || null,
         contactName:   contactName   || null,
+        contactPhone:  contactPhone  || null,
         notes:         notes         || null,
         paymentMethod: paymentMethod || null,
       },
@@ -72,6 +74,7 @@ export async function updateVendor(vendorId: string, formData: FormData): Promis
   const website      = formData.get("website") as string | null
   const contactEmail = formData.get("contactEmail") as string | null
   const contactName  = formData.get("contactName") as string | null
+  const contactPhone = formData.get("contactPhone") as string | null
   const notes         = formData.get("notes") as string | null
   const paymentMethod = formData.get("paymentMethod") as string | null
 
@@ -85,6 +88,7 @@ export async function updateVendor(vendorId: string, formData: FormData): Promis
         website:       normalizeUrl(website),
         contactEmail:  contactEmail  || null,
         contactName:   contactName   || null,
+        contactPhone:  contactPhone  || null,
         notes:         notes         || null,
         paymentMethod: paymentMethod || null,
       },

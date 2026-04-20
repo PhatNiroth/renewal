@@ -167,7 +167,7 @@ export default function AdminRenewalsPage() {
         <th className="px-6 py-3 text-left font-medium text-muted-foreground">Renewal Date</th>
         <th className="px-6 py-3 text-left font-medium text-muted-foreground">Cost</th>
         <th className="px-6 py-3 text-left font-medium text-muted-foreground">Responsible</th>
-        <th className="px-6 py-3" />
+        <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>
       </tr>
     </thead>
   )

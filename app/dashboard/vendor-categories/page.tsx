@@ -157,7 +157,7 @@ export default function AdminVendorCategoriesPage() {
                 <th className="px-6 py-3 text-left font-medium text-muted-foreground">Color</th>
                 <th className="px-6 py-3 text-left font-medium text-muted-foreground">Vendors</th>
                 <th className="px-6 py-3 text-left font-medium text-muted-foreground">Created</th>
-                <th className="px-6 py-3" />
+                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -243,7 +243,7 @@ export default function AdminVendorCategoriesPage() {
             <div className="flex justify-end gap-2 pt-1">
               <Button variant="outline" onClick={() => setShowAdd(false)}>Cancel</Button>
               <Button onClick={handleAdd} disabled={saving}>
-                {saving ? <><RiLoader4Line className="size-4 animate-spin" data-icon="inline-start" />Saving…</> : "Create Category"}
+                {saving ? <><RiLoader4Line className="size-4 animate-spin" data-icon="inline-start" />Creating…</> : "Create Category"}
               </Button>
             </div>
           </div>

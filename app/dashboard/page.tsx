@@ -53,6 +53,7 @@ export default async function DashboardPage() {
   const totalCostMonthly = active.reduce((sum: number, s: Sub) => {
     if (s.billingCycle === "MONTHLY")   return sum + s.cost
     if (s.billingCycle === "QUARTERLY") return sum + Math.round(s.cost / 3)
+    if (s.billingCycle === "SEMESTER")  return sum + Math.round(s.cost / 6)
     if (s.billingCycle === "YEARLY")    return sum + Math.round(s.cost / 12)
     return sum
   }, 0)

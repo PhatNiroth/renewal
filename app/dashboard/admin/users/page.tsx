@@ -108,7 +108,7 @@ export default function AdminUsersPage() {
                 <th className="px-6 py-3 text-left font-medium text-muted-foreground">Role</th>
                 <th className="px-6 py-3 text-left font-medium text-muted-foreground">Subs.</th>
                 <th className="px-6 py-3 text-left font-medium text-muted-foreground">Joined</th>
-                <th className="px-6 py-3" />
+                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">

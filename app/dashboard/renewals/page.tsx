@@ -17,7 +17,7 @@ function fmt(n: number) {
 }
 
 const cycleLabel: Record<string, string> = {
-  MONTHLY: "Monthly", QUARTERLY: "Quarterly", YEARLY: "Yearly", ONE_TIME: "One-time",
+  MONTHLY: "Monthly", QUARTERLY: "Quarterly", SEMESTER: "Semester", YEARLY: "Yearly", ONE_TIME: "One-time", CUSTOM: "Custom",
 }
 
 export default async function RenewalsPage() {
@@ -34,7 +34,7 @@ export default async function RenewalsPage() {
 
   const subscriptions = await db.subscription.findMany({
     where: {
-      status: { in: ["ACTIVE", "EXPIRING_SOON"] },
+      status: { in: ["ACTIVE", "EXPIRING_SOON", "EXPIRED"] },
       renewalDate: { lte: in30days },
     },
     include: { vendor: true, responsible: true },
@@ -94,7 +94,7 @@ export default async function RenewalsPage() {
                 <th className="px-6 py-3 text-left font-medium text-muted-foreground">Renewal Date</th>
                 <th className="px-6 py-3 text-left font-medium text-muted-foreground">Due In</th>
                 <th className="px-6 py-3 text-left font-medium text-muted-foreground">Responsible</th>
-                {canRenew && <th className="px-6 py-3" />}
+                {canRenew && <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">

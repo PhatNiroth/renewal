@@ -17,6 +17,25 @@ function fmtDate(d: string) {
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
 }
 
+type Period = "ALL" | "MONTH" | "QUARTER" | "SEMESTER" | "YEAR" | "CUSTOM"
+
+function getPeriodRange(period: Period, customFrom: string, customTo: string): { start: Date; end: Date } | null {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = now.getMonth()
+
+  if (period === "MONTH")    return { start: new Date(y, m, 1),                 end: new Date(y, m + 1, 1) }
+  if (period === "QUARTER")  { const q = Math.floor(m / 3) * 3; return { start: new Date(y, q, 1), end: new Date(y, q + 3, 1) } }
+  if (period === "SEMESTER") { const s = m < 6 ? 0 : 6;         return { start: new Date(y, s, 1), end: new Date(y, s + 6, 1) } }
+  if (period === "YEAR")     return { start: new Date(y, 0, 1),                 end: new Date(y + 1, 0, 1) }
+  if (period === "CUSTOM" && (customFrom || customTo)) {
+    const start = customFrom ? new Date(customFrom) : new Date(0)
+    const end   = customTo   ? new Date(new Date(customTo).getTime() + 86_400_000) : new Date(8640000000000000)
+    return { start, end }
+  }
+  return null
+}
+
 export function RenewalHistoryClient({
   logs,
   vendors,
@@ -29,10 +48,19 @@ export function RenewalHistoryClient({
   const [search, setSearch] = useState("")
   const [vendorFilter, setVendorFilter] = useState("")
   const [userFilter, setUserFilter] = useState("")
+  const [period, setPeriod] = useState<Period>("ALL")
+  const [customFrom, setCustomFrom] = useState("")
+  const [customTo, setCustomTo] = useState("")
+
+  const range = getPeriodRange(period, customFrom, customTo)
 
   const filtered = logs.filter(log => {
     if (vendorFilter && log.subscription.vendor.name !== vendorFilter) return false
     if (userFilter && (log.renewedBy.name || log.renewedBy.email) !== userFilter) return false
+    if (range) {
+      const d = new Date(log.createdAt)
+      if (d < range.start || d >= range.end) return false
+    }
     if (search) {
       const q = search.toLowerCase()
       const match =
@@ -74,6 +102,36 @@ export function RenewalHistoryClient({
           <option value="">All Users</option>
           {users.map(u => <option key={u} value={u}>{u}</option>)}
         </select>
+        <select
+          value={period}
+          onChange={e => setPeriod(e.target.value as Period)}
+          className={selectClass}
+        >
+          <option value="ALL">All Time</option>
+          <option value="MONTH">This Month</option>
+          <option value="QUARTER">This Quarter</option>
+          <option value="SEMESTER">This Semester</option>
+          <option value="YEAR">This Year</option>
+          <option value="CUSTOM">Custom Range</option>
+        </select>
+        {period === "CUSTOM" && (
+          <>
+            <Input
+              type="date"
+              value={customFrom}
+              onChange={e => setCustomFrom(e.target.value)}
+              className="w-auto"
+              aria-label="From date"
+            />
+            <Input
+              type="date"
+              value={customTo}
+              onChange={e => setCustomTo(e.target.value)}
+              className="w-auto"
+              aria-label="To date"
+            />
+          </>
+        )}
       </div>
 
       {filtered.length === 0 ? (

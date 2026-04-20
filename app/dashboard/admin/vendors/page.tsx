@@ -9,7 +9,7 @@ import { Modal } from "@/components/ui/modal"
 type CategoryInfo = { id: string; name: string; slug: string; color: string }
 type Vendor = {
   id: string; name: string; slug: string; category: CategoryInfo | null
-  website: string | null; contactEmail: string | null; contactName: string | null
+  website: string | null; contactEmail: string | null; contactName: string | null; contactPhone: string | null
   notes: string | null; isActive: boolean; _count: { subscriptions: number }
 }
 
@@ -27,8 +27,8 @@ const COLOR_CLASSES: Record<string, string> = {
 function colorClass(color: string) { return COLOR_CLASSES[color] ?? COLOR_CLASSES.gray }
 
 
-type FormData = { name: string; categoryId: string; website: string; contactEmail: string; contactName: string; notes: string }
-function emptyForm(): FormData { return { name: "", categoryId: "", website: "", contactEmail: "", contactName: "", notes: "" } }
+type FormData = { name: string; categoryId: string; website: string; contactEmail: string; contactName: string; contactPhone: string; notes: string }
+function emptyForm(): FormData { return { name: "", categoryId: "", website: "", contactEmail: "", contactName: "", contactPhone: "", notes: "" } }
 
 const COLORS = [
   { value: "blue", label: "Blue" }, { value: "violet", label: "Violet" },
@@ -128,6 +128,10 @@ function VendorForm({
           <label className="text-sm font-medium text-foreground">Contact Email</label>
           <Input type="email" value={form.contactEmail} onChange={set("contactEmail")} placeholder="contact@vendor.com" />
         </div>
+        <div className="space-y-1.5 col-span-2">
+          <label className="text-sm font-medium text-foreground">Contact Phone</label>
+          <Input type="tel" value={form.contactPhone} onChange={set("contactPhone")} placeholder="e.g. +1 555 123 4567" />
+        </div>
       </div>
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-foreground">Notes</label>
@@ -206,7 +210,7 @@ export default function AdminVendorsPage() {
           <p className="mt-1 text-sm text-muted-foreground">Manage all vendor records.</p>
         </div>
         <Button onClick={() => { setError(null); setForm(emptyForm()); setShowAdd(true) }} className="self-start sm:self-auto">
-          <RiAddLine className="size-4" data-icon="inline-start" />Add Vendor
+          <RiAddLine className="size-4" data-icon="inline-start" />New Vendor
         </Button>
       </div>
 
@@ -219,7 +223,7 @@ export default function AdminVendorsPage() {
                 <th className="px-6 py-3 text-left font-medium text-muted-foreground">Category</th>
                 <th className="px-6 py-3 text-left font-medium text-muted-foreground">Contact</th>
                 <th className="px-6 py-3 text-left font-medium text-muted-foreground">Subs.</th>
-                <th className="px-6 py-3" />
+                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -245,14 +249,15 @@ export default function AdminVendorsPage() {
                   <td className="px-6 py-3.5 text-muted-foreground">
                     {v.contactName && <p className="text-xs">{v.contactName}</p>}
                     {v.contactEmail && <p className="text-xs">{v.contactEmail}</p>}
-                    {!v.contactName && !v.contactEmail && <span className="opacity-40">—</span>}
+                    {v.contactPhone && <p className="text-xs">{v.contactPhone}</p>}
+                    {!v.contactName && !v.contactEmail && !v.contactPhone && <span className="opacity-40">—</span>}
                   </td>
                   <td className="px-6 py-3.5 text-muted-foreground">{v._count.subscriptions}</td>
                   <td className="px-6 py-3.5">
                     <div className="flex items-center justify-end gap-2">
                       <Button variant="outline" size="icon-sm" onClick={() => {
                         setEditing(v)
-                        setEditForm({ name: v.name, categoryId: v.category?.id ?? "", website: v.website ?? "", contactEmail: v.contactEmail ?? "", contactName: v.contactName ?? "", notes: v.notes ?? "" })
+                        setEditForm({ name: v.name, categoryId: v.category?.id ?? "", website: v.website ?? "", contactEmail: v.contactEmail ?? "", contactName: v.contactName ?? "", contactPhone: v.contactPhone ?? "", notes: v.notes ?? "" })
                         setError(null)
                       }}>
                         <RiEditLine className="size-4" />
@@ -294,7 +299,8 @@ export default function AdminVendorsPage() {
                   <div className="text-foreground">
                     {v.contactName && <p className="truncate">{v.contactName}</p>}
                     {v.contactEmail && <p className="truncate">{v.contactEmail}</p>}
-                    {!v.contactName && !v.contactEmail && "—"}
+                    {v.contactPhone && <p className="truncate">{v.contactPhone}</p>}
+                    {!v.contactName && !v.contactEmail && !v.contactPhone && "—"}
                   </div>
                 </div>
                 <div>
@@ -306,7 +312,7 @@ export default function AdminVendorsPage() {
               <div className="flex items-center gap-2 pt-1">
                 <Button variant="outline" size="sm" onClick={() => {
                   setEditing(v)
-                  setEditForm({ name: v.name, categoryId: v.category?.id ?? "", website: v.website ?? "", contactEmail: v.contactEmail ?? "", contactName: v.contactName ?? "", notes: v.notes ?? "" })
+                  setEditForm({ name: v.name, categoryId: v.category?.id ?? "", website: v.website ?? "", contactEmail: v.contactEmail ?? "", contactName: v.contactName ?? "", contactPhone: v.contactPhone ?? "", notes: v.notes ?? "" })
                   setError(null)
                 }} className="flex-1">
                   <RiEditLine className="size-4" data-icon="inline-start" />Edit
@@ -323,14 +329,14 @@ export default function AdminVendorsPage() {
       </div>
 
       {showAdd && (
-        <Modal title="Add Vendor" onClose={() => setShowAdd(false)}>
+        <Modal title="New Vendor" onClose={() => setShowAdd(false)}>
           <div className="space-y-4">
             {error && <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
             <VendorForm form={form} setForm={setForm} categories={categories} onCategoryCreated={handleCategoryCreated} />
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowAdd(false)}>Cancel</Button>
               <Button onClick={handleAdd} disabled={saving}>
-                {saving ? <><RiLoader4Line className="size-4 animate-spin" data-icon="inline-start" />Saving…</> : "Add Vendor"}
+                {saving ? <><RiLoader4Line className="size-4 animate-spin" data-icon="inline-start" />Creating…</> : "Create Vendor"}
               </Button>
             </div>
           </div>

@@ -19,6 +19,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const next = new Date(current)
     if      (sub.billingCycle === "MONTHLY")   next.setMonth(current.getMonth() + 1)
     else if (sub.billingCycle === "QUARTERLY") next.setMonth(current.getMonth() + 3)
+    else if (sub.billingCycle === "SEMESTER")  next.setMonth(current.getMonth() + 6)
     else if (sub.billingCycle === "YEARLY")    next.setFullYear(current.getFullYear() + 1)
     else if (sub.billingCycle === "CUSTOM")    next.setDate(current.getDate() + (sub.customDays ?? 30))
     else                                       next.setFullYear(current.getFullYear() + 1)

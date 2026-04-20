@@ -101,6 +101,7 @@ model Vendor {
   website      String?
   contactEmail String?
   contactName  String?
+  contactPhone String?
   notes         String?
   paymentMethod String?
   isActive      Boolean  @default(true)
@@ -236,6 +237,7 @@ enum Department {
 enum BillingCycle {
   MONTHLY
   QUARTERLY
+  SEMESTER
   YEARLY
   ONE_TIME
   CUSTOM

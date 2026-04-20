@@ -6,7 +6,6 @@ import { toast } from "react-hot-toast"
 import { RiAddLine, RiEditLine, RiDeleteBinLine, RiLoader4Line, RiCheckLine } from "@remixicon/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { cn } from "@/lib/utils"
 import { Modal } from "@/components/ui/modal"
 import { createVendor, updateVendor } from "@/app/actions/vendors"
 
@@ -20,6 +19,7 @@ type VendorRow = {
   website: string | null
   contactEmail: string | null
   contactName: string | null
+  contactPhone: string | null
   notes: string | null
   paymentMethod: string | null
   isActive: boolean
@@ -67,6 +67,10 @@ function VendorFields({ categories, defaults }: { categories: CategoryInfo[]; de
           <label className="text-sm font-medium text-foreground">Contact Email</label>
           <Input name="contactEmail" type="email" defaultValue={defaults?.contactEmail ?? ""} placeholder="support@…" />
         </div>
+        <div className="space-y-1.5 col-span-2">
+          <label className="text-sm font-medium text-foreground">Contact Phone</label>
+          <Input name="contactPhone" type="tel" defaultValue={defaults?.contactPhone ?? ""} placeholder="e.g. +1 555 123 4567" />
+        </div>
       </div>
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-foreground">Payment Method</label>
@@ -105,7 +109,7 @@ function AddModal({ categories, onClose, onSuccess }: { categories: CategoryInfo
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>Cancel</Button>
           <Button type="submit" disabled={isPending}>
-            {isPending ? <><RiLoader4Line className="size-4 animate-spin" data-icon="inline-start" />Saving…</> : <><RiAddLine data-icon="inline-start" />Add Vendor</>}
+            {isPending ? <><RiLoader4Line className="size-4 animate-spin" data-icon="inline-start" />Creating…</> : <><RiAddLine data-icon="inline-start" />Create Vendor</>}
           </Button>
         </div>
       </form>
@@ -237,7 +241,7 @@ export default function VendorsClient({
                   <th className="px-6 py-3 text-left font-medium text-muted-foreground">Contact</th>
                   <th className="px-6 py-3 text-left font-medium text-muted-foreground">Payment Method</th>
                   <th className="px-6 py-3 text-left font-medium text-muted-foreground">Subs.</th>
-                  {(canEdit || canDelete) && <th className="px-6 py-3" />}
+                  {(canEdit || canDelete) && <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -254,15 +258,7 @@ export default function VendorsClient({
                         <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-bold">
                           {v.name.slice(0, 2).toUpperCase()}
                         </div>
-                        <div>
-                          <p className="font-medium text-foreground">{v.name}</p>
-                          <span className={cn(
-                            "inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium",
-                            v.isActive ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground"
-                          )}>
-                            {v.isActive ? "Active" : "Inactive"}
-                          </span>
-                        </div>
+                        <p className="font-medium text-foreground">{v.name}</p>
                       </div>
                     </td>
                     <td className="px-6 py-3.5">
@@ -284,7 +280,8 @@ export default function VendorsClient({
                     <td className="px-6 py-3.5 text-muted-foreground">
                       {v.contactName && <p className="text-xs">{v.contactName}</p>}
                       {v.contactEmail && <p className="text-xs">{v.contactEmail}</p>}
-                      {!v.contactName && !v.contactEmail && <span className="opacity-40">—</span>}
+                      {v.contactPhone && <p className="text-xs">{v.contactPhone}</p>}
+                      {!v.contactName && !v.contactEmail && !v.contactPhone && <span className="opacity-40">—</span>}
                     </td>
                     <td className="px-6 py-3.5 text-muted-foreground">{v.paymentMethod ?? <span className="opacity-40">—</span>}</td>
                     <td className="px-6 py-3.5 text-muted-foreground">{v._count.subscriptions}</td>
@@ -325,12 +322,6 @@ export default function VendorsClient({
                     </div>
                     <div className="min-w-0">
                       <div className="font-medium text-foreground truncate">{v.name}</div>
-                      <span className={cn(
-                        "inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium mt-0.5",
-                        v.isActive ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground"
-                      )}>
-                        {v.isActive ? "Active" : "Inactive"}
-                      </span>
                     </div>
                   </div>
                   {v.category && (
@@ -356,7 +347,8 @@ export default function VendorsClient({
                     <div className="text-foreground min-w-0">
                       {v.contactName && <p className="truncate">{v.contactName}</p>}
                       {v.contactEmail && <p className="truncate break-all">{v.contactEmail}</p>}
-                      {!v.contactName && !v.contactEmail && "—"}
+                      {v.contactPhone && <p className="truncate">{v.contactPhone}</p>}
+                      {!v.contactName && !v.contactEmail && !v.contactPhone && "—"}
                     </div>
                   </div>
                   <div className="min-w-0">

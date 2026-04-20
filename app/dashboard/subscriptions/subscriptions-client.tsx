@@ -28,7 +28,7 @@ const statusConfig: Record<string, { label: string; className: string; icon: Rea
 }
 
 const cycleLabel: Record<string, string> = {
-  MONTHLY: "Monthly", QUARTERLY: "Quarterly", YEARLY: "Yearly", ONE_TIME: "One-time", CUSTOM: "Custom",
+  MONTHLY: "Monthly", QUARTERLY: "Quarterly", SEMESTER: "Semester", YEARLY: "Yearly", ONE_TIME: "One-time", CUSTOM: "Custom",
 }
 
 const DEPARTMENTS: { value: string; label: string }[] = [
@@ -100,7 +100,7 @@ function AddSubscriptionModal({
   }
 
   return (
-    <Modal title="Add Subscription" onClose={onClose} size="lg">
+    <Modal title="New Subscription" onClose={onClose} size="lg">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
 
@@ -179,7 +179,7 @@ function AddSubscriptionModal({
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>Cancel</Button>
           <Button type="submit" disabled={isPending}>
-            {isPending ? <><RiLoader4Line className="size-4 animate-spin" data-icon="inline-start" />Saving…</> : <><RiAddLine data-icon="inline-start" />Add Subscription</>}
+            {isPending ? <><RiLoader4Line className="size-4 animate-spin" data-icon="inline-start" />Creating…</> : <><RiAddLine data-icon="inline-start" />Create Subscription</>}
           </Button>
         </div>
       </form>
@@ -209,7 +209,7 @@ function EditSubscriptionModal({
     const fd = new FormData(e.currentTarget)
     const cost = fd.get("cost") as string
     const costCents = Math.round(parseFloat(cost || "0") * 100)
-    const billingCycle = fd.get("billingCycle") as "MONTHLY" | "QUARTERLY" | "YEARLY" | "ONE_TIME" | "CUSTOM"
+    const billingCycle = fd.get("billingCycle") as "MONTHLY" | "QUARTERLY" | "SEMESTER" | "YEARLY" | "ONE_TIME" | "CUSTOM"
     const customDaysRaw = fd.get("customDays") as string
     startTransition(async () => {
       const deptVal = fd.get("department") as string
@@ -427,7 +427,7 @@ export default function SubscriptionsClient({
           </div>
           {canAdd && (
             <Button size="sm" onClick={() => setShowModal(true)} className="self-start sm:self-auto">
-              <RiAddLine data-icon="inline-start" />Add Subscription
+              <RiAddLine data-icon="inline-start" />New Subscription
             </Button>
           )}
         </div>
@@ -510,15 +510,16 @@ export default function SubscriptionsClient({
                   </th>
                   <th className="px-6 py-3 text-left font-medium text-muted-foreground">Responsible</th>
                   <th className="px-6 py-3 text-left font-medium text-muted-foreground">Document</th>
+                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Notes</th>
                   {canEdit && <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={canEdit ? 10 : 9} className="px-6 py-16 text-center text-sm text-muted-foreground">
+                    <td colSpan={canEdit ? 11 : 10} className="px-6 py-16 text-center text-sm text-muted-foreground">
                       {subscriptions.length === 0
-                        ? "No subscriptions yet. Click \"Add Subscription\" to create one."
+                        ? "No subscriptions yet. Click \"New Subscription\" to create one."
                         : "No subscriptions match your search."}
                     </td>
                   </tr>
@@ -561,6 +562,11 @@ export default function SubscriptionsClient({
                             : <span className="text-xs text-muted-foreground font-mono">{sub.documentPath}</span>
                         ) : <span className="text-muted-foreground/50">—</span>}
                       </td>
+                      <td className="px-6 py-3.5 text-muted-foreground">
+                        {sub.notes ? (
+                          <span className="block max-w-60 truncate text-xs" title={sub.notes}>{sub.notes}</span>
+                        ) : <span className="text-muted-foreground/50">—</span>}
+                      </td>
                       {canEdit && (
                         <td className="px-6 py-3.5">
                           <div className="flex items-center gap-2">
@@ -585,7 +591,7 @@ export default function SubscriptionsClient({
             {filtered.length === 0 ? (
               <div className="px-4 py-12 text-center text-sm text-muted-foreground">
                 {subscriptions.length === 0
-                  ? "No subscriptions yet. Click \"Add Subscription\" to create one."
+                  ? "No subscriptions yet. Click \"New Subscription\" to create one."
                   : "No subscriptions match your search."}
               </div>
             ) : filtered.map(sub => {

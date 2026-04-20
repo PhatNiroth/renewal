@@ -14,9 +14,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!sub) return NextResponse.json({ error: "Subscription not found" }, { status: 404 })
 
   if (action === "mark_renewed") {
-    // Push renewal date forward by one billing cycle
-    const current = new Date(sub.renewalDate)
-    const next = new Date(current)
+    const today   = new Date()
+    const current = sub.renewalDate.getTime() > today.getTime() ? new Date(sub.renewalDate) : today
+    const next    = new Date(current)
     if      (sub.billingCycle === "MONTHLY")   next.setMonth(current.getMonth() + 1)
     else if (sub.billingCycle === "QUARTERLY") next.setMonth(current.getMonth() + 3)
     else if (sub.billingCycle === "SEMESTER")  next.setMonth(current.getMonth() + 6)

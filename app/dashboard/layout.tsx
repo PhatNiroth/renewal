@@ -94,7 +94,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
           <p className="px-3 pb-2 text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
-            Menu
+            Menu 
           </p>
           {visibleNavItems.map(({ href, label, icon: Icon }) => {
             const active = pathname === href || (

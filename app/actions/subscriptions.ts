@@ -35,12 +35,11 @@ export async function createSubscription(formData: FormData): Promise<ActionResu
 
   if (!vendorId)    return { error: "Vendor is required" }
   if (!planName)    return { error: "Plan / service name is required" }
-  if (!cost)        return { error: "Cost is required" }
   if (!startDate)   return { error: "Start date is required" }
   if (!renewalDate) return { error: "Renewal date is required" }
   if (billingCycle === "CUSTOM" && !customDays) return { error: "Custom duration (days) is required" }
 
-  const costCents = Math.round(parseFloat(cost) * 100)
+  const costCents = cost ? Math.round(parseFloat(cost) * 100) : 0
   if (isNaN(costCents) || costCents < 0) return { error: "Invalid cost amount" }
 
   try {

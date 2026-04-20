@@ -121,8 +121,8 @@ function AddSubscriptionModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Cost (USD) <span className="text-destructive">*</span></label>
-            <Input name="cost" type="number" min="0.01" step="0.01" placeholder="0.00" required />
+            <label className="text-sm font-medium text-foreground">Cost (USD)</label>
+            <Input name="cost" type="number" min="0" step="0.01" placeholder="0.00" />
           </div>
 
           <div className="space-y-1.5">
@@ -249,8 +249,8 @@ function EditSubscriptionModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Cost (USD) <span className="text-destructive">*</span></label>
-            <Input name="cost" type="number" min="0" step="0.01" defaultValue={(sub.cost / 100).toFixed(2)} required />
+            <label className="text-sm font-medium text-foreground">Cost (USD)</label>
+            <Input name="cost" type="number" min="0" step="0.01" defaultValue={(sub.cost / 100).toFixed(2)} />
           </div>
 
           <div className="space-y-1.5">

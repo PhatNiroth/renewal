@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { RiAddLine, RiEditLine, RiDeleteBinLine, RiLoader4Line } from "@remixicon/react"
 import { Modal } from "@/components/ui/modal"
 
-const MODULES = ["SUBSCRIPTIONS", "RENEWALS", "VENDORS", "VENDOR_CATEGORIES", "PAYMENTS"] as const
+const MODULES = ["SUBSCRIPTIONS", "RENEWALS", "VENDORS", "VENDOR_CATEGORIES"] as const
 type ModuleName = typeof MODULES[number]
 type PermMap = Record<ModuleName, { view: boolean; add: boolean; edit: boolean; delete: boolean }>
 const ACTIONS = ["view", "add", "edit", "delete"] as const
@@ -17,7 +17,6 @@ const MODULE_LABELS: Record<string, string> = {
   RENEWALS:         "Renewals",
   VENDORS:          "Vendors",
   VENDOR_CATEGORIES:"Vendor Categories",
-  PAYMENTS:         "Payments",
 }
 
 function emptyPerms(): PermMap {

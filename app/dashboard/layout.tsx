@@ -17,7 +17,7 @@ const navItems = [
   { href: "/dashboard/subscriptions",           label: "Subscriptions",     icon: RiStackLine,     module: "SUBSCRIPTIONS"   },
   { href: "/dashboard/vendors",                 label: "Vendors",           icon: RiBuildingLine,  module: "VENDORS"         },
   { href: "/dashboard/admin/vendor-categories", label: "Vendor Categories", icon: RiPriceTag3Line, module: "VENDOR_CATEGORIES" },
-  { href: "/dashboard/renewals",                label: "Renewals",          icon: RiCalendarLine,  module: "RENEWALS"        },
+  { href: "/dashboard/renewals",                label: "Upcoming Renewals", icon: RiCalendarLine,  module: "RENEWALS"        },
 ]
 
 const adminItems = [

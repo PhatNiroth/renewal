@@ -1,11 +1,7 @@
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { redirect } from "next/navigation"
-import { RiHistoryLine } from "@remixicon/react"
-
-function fmtDate(d: Date | string) {
-  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-}
+import { RenewalHistoryClient } from "./renewal-history-client"
 
 export default async function RenewalHistoryPage() {
   const session = await auth()
@@ -30,6 +26,26 @@ export default async function RenewalHistoryPage() {
     orderBy: { createdAt: "desc" },
   })
 
+  // Serialize dates for client component
+  const serializedLogs = logs.map(log => ({
+    id: log.id,
+    previousDate: log.previousDate.toISOString(),
+    newDate: log.newDate.toISOString(),
+    createdAt: log.createdAt.toISOString(),
+    subscription: {
+      planName: log.subscription.planName,
+      vendor: { name: log.subscription.vendor.name },
+    },
+    renewedBy: {
+      name: log.renewedBy.name,
+      email: log.renewedBy.email,
+    },
+  }))
+
+  // Extract unique vendors and users for filter dropdowns
+  const vendors = [...new Set(logs.map(l => l.subscription.vendor.name))].sort()
+  const users = [...new Set(logs.map(l => l.renewedBy.name || l.renewedBy.email))].sort()
+
   return (
     <div className="p-6 lg:p-8 space-y-6">
       <div>
@@ -37,49 +53,7 @@ export default async function RenewalHistoryPage() {
         <p className="mt-1 text-sm text-muted-foreground">Log of all subscription renewals — who renewed, when, and what changed.</p>
       </div>
 
-      {logs.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-12 text-center">
-          <RiHistoryLine className="mx-auto size-10 text-muted-foreground/40" />
-          <p className="mt-3 text-sm text-muted-foreground">No renewal history yet.</p>
-          <p className="text-xs text-muted-foreground mt-1">Renewal logs appear here when subscriptions are marked as renewed.</p>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/40">
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Vendor</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Subscription</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Previous Date</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">New Date</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Renewed By</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Renewed At</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {logs.map(log => (
-                  <tr key={log.id} className="hover:bg-muted/40 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                          {log.subscription.vendor.name.slice(0, 2).toUpperCase()}
-                        </div>
-                        <span className="font-medium text-foreground">{log.subscription.vendor.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-foreground">{log.subscription.planName}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{fmtDate(log.previousDate)}</td>
-                    <td className="px-4 py-3 text-foreground">{fmtDate(log.newDate)}</td>
-                    <td className="px-4 py-3 text-foreground">{log.renewedBy.name || log.renewedBy.email}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{fmtDate(log.createdAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <RenewalHistoryClient logs={serializedLogs} vendors={vendors} users={users} />
     </div>
   )
 }

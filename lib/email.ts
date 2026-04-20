@@ -2,10 +2,12 @@ import { Resend } from "resend"
 
 const globalForResend = globalThis as unknown as { resend: Resend | undefined }
 
-const resend =
-  globalForResend.resend ?? new Resend(process.env.RESEND_API_KEY!)
-
-if (process.env.NODE_ENV !== "production") globalForResend.resend = resend
+function getResend() {
+  if (!globalForResend.resend) {
+    globalForResend.resend = new Resend(process.env.RESEND_API_KEY!)
+  }
+  return globalForResend.resend
+}
 
 const FROM = process.env.EMAIL_FROM ?? "noreply@subtrack.app"
 
@@ -14,7 +16,7 @@ export async function sendEmail(
   subject: string,
   html: string
 ): Promise<void> {
-  const { error } = await resend.emails.send({ from: FROM, to, subject, html })
+  const { error } = await getResend().emails.send({ from: FROM, to, subject, html })
   if (error) throw new Error(`Email send failed: ${error.message}`)
 }
 

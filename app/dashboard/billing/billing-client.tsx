@@ -204,15 +204,15 @@ export default function BillingClient({
         </Modal>
       )}
 
-      <div className="p-6 lg:p-8 space-y-6">
+      <div className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground tracking-tight">Payments</h1>
+            <h1 className="text-xl md:text-2xl font-semibold text-foreground tracking-tight">Payments</h1>
             <p className="mt-1 text-sm text-muted-foreground">Manual payment records for all company subscriptions.</p>
           </div>
           {canAdd && (
-            <Button size="sm" onClick={() => setShowModal(true)}>
+            <Button size="sm" onClick={() => setShowModal(true)} className="self-start sm:self-auto">
               <RiAddLine data-icon="inline-start" />Record Payment
             </Button>
           )}
@@ -225,7 +225,7 @@ export default function BillingClient({
             { label: "Payments This Year",value: currentYear ? payments.filter(p => new Date(p.paidAt).getFullYear() === currentYear).length.toString() : "—", sub: currentYear ? currentYear.toString() : "" },
             { label: "Subscriptions Paid", value: new Set(payments.map(p => p.subscription.id)).size.toString(), sub: "unique subscriptions" },
           ].map(card => (
-            <div key={card.label} className="rounded-xl border border-border bg-card p-5">
+            <div key={card.label} className="rounded-xl border border-border bg-card p-4 md:p-5">
               <p className="text-sm text-muted-foreground">{card.label}</p>
               <p className="mt-1 text-2xl font-bold text-foreground tracking-tight">{card.value}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">{card.sub}</p>
@@ -236,7 +236,7 @@ export default function BillingClient({
         {/* Table */}
         <div className="rounded-xl border border-border bg-card">
           {/* Toolbar */}
-          <div className="flex flex-col gap-3 px-6 py-4 border-b border-border sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 px-4 py-3 md:px-6 md:py-4 border-b border-border sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full sm:max-w-xs">
               <RiSearchLine className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <input
@@ -255,7 +255,7 @@ export default function BillingClient({
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
@@ -315,8 +315,60 @@ export default function BillingClient({
             </table>
           </div>
 
-          <div className="px-6 py-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-            <span>Showing {filtered.length} of {payments.length} payments</span>
+          {/* Card list (mobile) */}
+          <div className="md:hidden divide-y divide-border">
+            {filtered.length === 0 ? (
+              <div className="px-4 py-12 text-center text-sm text-muted-foreground">
+                {payments.length === 0
+                  ? "No payments recorded yet. Click \"Record Payment\" to add one."
+                  : "No payments match your search."}
+              </div>
+            ) : filtered.map(p => (
+              <div key={p.id} className="px-4 py-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-medium text-foreground truncate">{p.subscription.vendor.name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{p.subscription.planName}</div>
+                  </div>
+                  <div className="font-semibold text-foreground shrink-0">{fmt(p.amount)}</div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  <div>
+                    <div className="text-muted-foreground">Paid On</div>
+                    <div className="text-foreground">{fmtDate(p.paidAt)}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Recorded By</div>
+                    <div className="text-foreground truncate">{p.paidBy?.name ?? p.paidBy?.email ?? "—"}</div>
+                  </div>
+                  <div className="col-span-2">
+                    <div className="text-muted-foreground">Note</div>
+                    <div className="text-foreground truncate">{p.note ?? "—"}</div>
+                  </div>
+                  <div className="col-span-2">
+                    <div className="text-muted-foreground">Receipt</div>
+                    <div>
+                      {p.receiptUrl
+                        ? <a href={p.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">View</a>
+                        : <span className="text-foreground">—</span>}
+                    </div>
+                  </div>
+                </div>
+
+                {canDelete && (
+                  <div className="pt-1">
+                    <Button variant="outline" size="sm" className="w-full text-destructive hover:text-destructive" onClick={() => { setDeleting(p); setDeleteError(null) }}>
+                      <RiDeleteBinLine className="size-4" data-icon="inline-start" />Delete
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="px-4 py-3 md:px-6 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+            <span>Showing {filtered.length} of {payments.length}</span>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" disabled>Previous</Button>
               <Button variant="outline" size="sm" disabled>Next</Button>

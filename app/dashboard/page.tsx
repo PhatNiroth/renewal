@@ -69,10 +69,10 @@ export default async function DashboardPage() {
     .slice(0, 6)
 
   return (
-    <div className="p-6 lg:p-8 space-y-8">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold text-foreground tracking-tight">Overview</h1>
+        <h1 className="text-xl md:text-2xl font-semibold text-foreground tracking-tight">Overview</h1>
         <p className="mt-1 text-sm text-muted-foreground">Company subscription & renewal summary.</p>
       </div>
 
@@ -114,7 +114,7 @@ export default async function DashboardPage() {
         ].map(stat => {
           const Icon = stat.icon
           return (
-            <div key={stat.label} className="rounded-xl border border-border bg-card p-5 flex flex-col gap-3">
+            <div key={stat.label} className="rounded-xl border border-border bg-card p-4 md:p-5 flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-muted-foreground">{stat.label}</span>
                 <div className={`flex size-8 items-center justify-center rounded-lg ${stat.bg}`}>
@@ -133,7 +133,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Recent subscriptions */}
         {canViewSubs && <div className="rounded-xl border border-border bg-card">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-border">
             <div>
               <h2 className="font-semibold text-foreground">Recent Subscriptions</h2>
               <p className="text-xs text-muted-foreground mt-0.5">Latest added</p>
@@ -146,9 +146,9 @@ export default async function DashboardPage() {
           </div>
           <div className="divide-y divide-border">
             {recentSubs.length === 0 ? (
-              <p className="px-6 py-8 text-center text-sm text-muted-foreground">No subscriptions yet.</p>
+              <p className="px-4 md:px-6 py-8 text-center text-sm text-muted-foreground">No subscriptions yet.</p>
             ) : recentSubs.map(sub => (
-              <div key={sub.id} className="flex items-center gap-3 px-6 py-3.5 hover:bg-muted/40 transition-colors">
+              <div key={sub.id} className="flex items-center gap-3 px-4 md:px-6 py-3.5 hover:bg-muted/40 transition-colors">
                 <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">
                   {sub.vendor.name.slice(0, 2).toUpperCase()}
                 </div>
@@ -169,7 +169,7 @@ export default async function DashboardPage() {
 
         {/* Upcoming renewals */}
         {canViewRenewals && <div className="rounded-xl border border-border bg-card">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-border">
             <div>
               <h2 className="font-semibold text-foreground">Upcoming Renewals</h2>
               <p className="text-xs text-muted-foreground mt-0.5">Next 30 days</p>
@@ -182,12 +182,12 @@ export default async function DashboardPage() {
           </div>
           <div className="divide-y divide-border">
             {upcomingRenewals.length === 0 ? (
-              <p className="px-6 py-8 text-center text-sm text-muted-foreground">No renewals in the next 30 days.</p>
+              <p className="px-4 md:px-6 py-8 text-center text-sm text-muted-foreground">No renewals in the next 30 days.</p>
             ) : upcomingRenewals.map(sub => {
               const days = daysUntil(sub.renewalDate)
               const urgent = days <= 7
               return (
-                <div key={sub.id} className="flex items-center gap-3 px-6 py-3.5 hover:bg-muted/40 transition-colors">
+                <div key={sub.id} className="flex items-center gap-3 px-4 md:px-6 py-3.5 hover:bg-muted/40 transition-colors">
                   <div className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${urgent ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "bg-blue-500/10 text-blue-600 dark:text-blue-400"}`}>
                     {sub.vendor.name.slice(0, 2).toUpperCase()}
                   </div>

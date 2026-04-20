@@ -137,19 +137,19 @@ export default function AdminVendorCategoriesPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground tracking-tight">Vendor Categories</h1>
+          <h1 className="text-xl md:text-2xl font-semibold text-foreground tracking-tight">Vendor Categories</h1>
           <p className="mt-1 text-sm text-muted-foreground">Manage the categories used to classify vendors.</p>
         </div>
-        <Button onClick={() => { setError(null); setNewName(""); setNewColor("gray"); setShowAdd(true) }}>
+        <Button onClick={() => { setError(null); setNewName(""); setNewColor("gray"); setShowAdd(true) }} className="self-start sm:self-auto">
           <RiAddLine className="size-4" data-icon="inline-start" />New Category
         </Button>
       </div>
 
       <div className="rounded-xl border border-border bg-card">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
@@ -199,7 +199,37 @@ export default function AdminVendorCategoriesPage() {
             </tbody>
           </table>
         </div>
-        <div className="border-t border-border px-6 py-3 text-xs text-muted-foreground">
+
+        {/* Card list (mobile) */}
+        <div className="md:hidden divide-y divide-border">
+          {loading ? (
+            <div className="py-12 text-center text-muted-foreground"><RiLoader4Line className="size-5 animate-spin inline" /></div>
+          ) : categories.length === 0 ? (
+            <div className="px-4 py-12 text-center text-sm text-muted-foreground">No categories yet.</div>
+          ) : categories.map(cat => (
+            <div key={cat.id} className="px-4 py-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium text-foreground truncate">{cat.name}</div>
+                  <div className="text-xs text-muted-foreground">{cat._count.vendors} vendor{cat._count.vendors !== 1 ? "s" : ""} · {fmtDate(cat.createdAt)}</div>
+                </div>
+                <ColorDot color={cat.color} />
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => {
+                  setEditing(cat); setEditName(cat.name); setEditColor(cat.color); setError(null)
+                }}>
+                  <RiEditLine className="size-4" data-icon="inline-start" />Edit
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1 text-destructive hover:text-destructive" onClick={() => { setDeleting(cat); setError(null) }}>
+                  <RiDeleteBinLine className="size-4" data-icon="inline-start" />Delete
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t border-border px-4 py-3 md:px-6 text-xs text-muted-foreground">
           {categories.length} categor{categories.length !== 1 ? "ies" : "y"} total
         </div>
       </div>

@@ -148,19 +148,19 @@ export default function AdminRolesPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground tracking-tight">Roles</h1>
+          <h1 className="text-xl md:text-2xl font-semibold text-foreground tracking-tight">Roles</h1>
           <p className="mt-1 text-sm text-muted-foreground">Define roles and set their module permissions.</p>
         </div>
-        <Button onClick={() => { setAddError(null); setNewName(""); setNewPerms(emptyPerms()); setShowAdd(true) }}>
+        <Button onClick={() => { setAddError(null); setNewName(""); setNewPerms(emptyPerms()); setShowAdd(true) }} className="self-start sm:self-auto">
           <RiAddLine className="size-4" data-icon="inline-start" />New Role
         </Button>
       </div>
 
       <div className="rounded-xl border border-border bg-card">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
@@ -232,7 +232,63 @@ export default function AdminRolesPage() {
             </tbody>
           </table>
         </div>
-        <div className="border-t border-border px-6 py-3 text-xs text-muted-foreground">
+
+        {/* Card list (mobile) */}
+        <div className="md:hidden divide-y divide-border">
+          {loading ? (
+            <div className="py-12 text-center text-muted-foreground"><RiLoader4Line className="size-5 animate-spin inline" /></div>
+          ) : roles.length === 0 ? (
+            <div className="px-4 py-12 text-center text-sm text-muted-foreground">No roles yet.</div>
+          ) : roles.map(role => {
+            const perms = permsFromApi(role.permissions)
+            return (
+              <div key={role.id} className="px-4 py-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-medium text-foreground truncate">{role.name}</div>
+                    <div className="text-xs text-muted-foreground">{role._count.users} user{role._count.users !== 1 ? "s" : ""} · {fmtDate(role.createdAt)}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1.5">Permissions</div>
+                  <div className="flex flex-wrap gap-1">
+                    {MODULES.map(mod => {
+                      const p = perms[mod]
+                      const actions = (["view","add","edit","delete"] as const).filter(a => p[a])
+                      if (actions.length === 0) return (
+                        <span key={mod} className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground/50">
+                          {MODULE_LABELS[mod]}: none
+                        </span>
+                      )
+                      return (
+                        <span key={mod} className="rounded-md bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                          {MODULE_LABELS[mod]}: {actions.join(", ")}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => {
+                    setEditing(role)
+                    setEditName(role.name)
+                    setEditPerms(permsFromApi(role.permissions))
+                    setEditError(null)
+                  }}>
+                    <RiEditLine className="size-4" data-icon="inline-start" />Edit
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1 text-destructive hover:text-destructive" onClick={() => { setDeleting(role); setDeleteError(null) }}>
+                    <RiDeleteBinLine className="size-4" data-icon="inline-start" />Delete
+                  </Button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="border-t border-border px-4 py-3 md:px-6 text-xs text-muted-foreground">
           {roles.length} role{roles.length !== 1 ? "s" : ""} total
         </div>
       </div>

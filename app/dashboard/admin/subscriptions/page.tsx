@@ -157,19 +157,19 @@ export default function AdminSubscriptionsPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground tracking-tight">All Subscriptions</h1>
+          <h1 className="text-xl md:text-2xl font-semibold text-foreground tracking-tight">All Subscriptions</h1>
           <p className="mt-1 text-sm text-muted-foreground">Create, edit, and delete company subscriptions.</p>
         </div>
-        <Button onClick={() => { setError(null); setForm(emptyForm()); setShowAdd(true) }}>
+        <Button onClick={() => { setError(null); setForm(emptyForm()); setShowAdd(true) }} className="self-start sm:self-auto">
           <RiAddLine className="size-4" data-icon="inline-start" />Add Subscription
         </Button>
       </div>
 
       <div className="rounded-xl border border-border bg-card">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
@@ -227,7 +227,67 @@ export default function AdminSubscriptionsPage() {
             </tbody>
           </table>
         </div>
-        <div className="border-t border-border px-6 py-3 text-xs text-muted-foreground">{subs.length} subscription{subs.length !== 1 ? "s" : ""}</div>
+
+        {/* Card list (mobile) */}
+        <div className="md:hidden divide-y divide-border">
+          {loading ? (
+            <div className="py-12 text-center text-muted-foreground"><RiLoader4Line className="size-5 animate-spin inline" /></div>
+          ) : subs.length === 0 ? (
+            <div className="px-4 py-12 text-center text-sm text-muted-foreground">No subscriptions yet.</div>
+          ) : subs.map(s => (
+            <div key={s.id} className="px-4 py-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium text-foreground truncate">{s.vendor.name}</div>
+                  <div className="text-xs text-muted-foreground truncate">{s.planName}</div>
+                </div>
+                <span className={cn("inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium shrink-0", STATUS_COLORS[s.status])}>
+                  {STATUS_LABELS[s.status] ?? s.status}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                <div>
+                  <div className="text-muted-foreground">Cost</div>
+                  <div className="font-medium text-foreground">{fmt(s.cost)}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Cycle</div>
+                  <div className="text-foreground">{CYCLE_LABELS[s.billingCycle] ?? s.billingCycle}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Renewal</div>
+                  <div className="text-foreground">{fmtDate(s.renewalDate)}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Responsible</div>
+                  <div className="text-foreground truncate">{s.responsible?.name ?? s.responsible?.email ?? "—"}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <Button variant="outline" size="sm" onClick={() => {
+                  setEditing(s)
+                  setEditForm({
+                    vendorId: s.vendor.id, planName: s.planName,
+                    cost: (s.cost / 100).toFixed(2),
+                    billingCycle: s.billingCycle, startDate: toInput(s.startDate),
+                    renewalDate: toInput(s.renewalDate), status: s.status,
+                    responsibleId: s.responsible?.id ?? "", notes: s.notes ?? "",
+                  })
+                  setError(null)
+                }} className="flex-1">
+                  <RiEditLine className="size-4" data-icon="inline-start" />Edit
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1 text-destructive hover:text-destructive" onClick={() => { setDeleting(s); setError(null) }}>
+                  <RiDeleteBinLine className="size-4" data-icon="inline-start" />Delete
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t border-border px-4 py-3 md:px-6 text-xs text-muted-foreground">{subs.length} subscription{subs.length !== 1 ? "s" : ""}</div>
       </div>
 
       {showAdd && (

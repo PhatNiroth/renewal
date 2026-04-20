@@ -114,6 +114,51 @@ export default function AdminRenewalsPage() {
     )
   }
 
+  function SubCard({ s }: { s: Sub }) {
+    const overdue = new Date(s.renewalDate).getTime() < Date.now()
+    return (
+      <div className="px-4 py-4 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="font-medium text-foreground truncate">{s.vendor.name}</div>
+            <div className="text-xs text-muted-foreground truncate">{s.planName}</div>
+          </div>
+          <span className={cn("inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium shrink-0", STATUS_COLORS[s.status])}>
+            {STATUS_LABELS[s.status] ?? s.status}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+          <div>
+            <div className="text-muted-foreground">Renewal Date</div>
+            <div className="text-foreground">{fmtDate(s.renewalDate)}</div>
+            <div className={cn("text-xs", overdue ? "text-destructive" : "text-muted-foreground")}>{daysUntil(s.renewalDate)}</div>
+          </div>
+          <div>
+            <div className="text-muted-foreground">Cost</div>
+            <div className="font-medium text-foreground">{fmt(s.cost)}</div>
+          </div>
+          <div className="col-span-2">
+            <div className="text-muted-foreground">Responsible</div>
+            <div className="text-foreground truncate">{s.responsible?.name ?? s.responsible?.email ?? "—"}</div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 pt-1">
+          <Button variant="outline" size="sm" className="flex-1" onClick={() => { setEditDate(s); setNewDate(new Date(s.renewalDate).toISOString().split("T")[0]); setError(null) }}>
+            <RiEditLine className="size-4" data-icon="inline-start" />Edit Date
+          </Button>
+          <Button variant="outline" size="sm" className="flex-1 text-emerald-600 hover:text-emerald-600" onClick={() => { setConfirming({ sub: s, action: "mark_renewed" }); setError(null) }}>
+            <RiCheckLine className="size-4" data-icon="inline-start" />Renew
+          </Button>
+          <Button variant="outline" size="sm" className="flex-1 text-destructive hover:text-destructive" onClick={() => { setConfirming({ sub: s, action: "cancel" }); setError(null) }}>
+            <RiCloseLine className="size-4" data-icon="inline-start" />Cancel
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   const tableHead = (
     <thead>
       <tr className="border-b border-border">
@@ -128,9 +173,9 @@ export default function AdminRenewalsPage() {
   )
 
   return (
-    <div className="p-6 lg:p-8 space-y-8">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground tracking-tight">Renewals</h1>
+        <h1 className="text-xl md:text-2xl font-semibold text-foreground tracking-tight">Renewals</h1>
         <p className="mt-1 text-sm text-muted-foreground">Mark renewals as done, update dates, or cancel subscriptions.</p>
       </div>
 
@@ -141,7 +186,7 @@ export default function AdminRenewalsPage() {
             <RiCalendarLine className="size-4 text-destructive" />Needs Attention ({expiringSoon.length})
           </h2>
           <div className="rounded-xl border border-destructive/20 bg-card">
-            <div className="overflow-x-auto">
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 {tableHead}
                 <tbody className="divide-y divide-border">
@@ -151,6 +196,11 @@ export default function AdminRenewalsPage() {
                 </tbody>
               </table>
             </div>
+            <div className="md:hidden divide-y divide-border">
+              {loading ? (
+                <div className="py-8 text-center"><RiLoader4Line className="size-5 animate-spin inline text-muted-foreground" /></div>
+              ) : expiringSoon.map(s => <SubCard key={s.id} s={s} />)}
+            </div>
           </div>
         </div>
       )}
@@ -159,7 +209,7 @@ export default function AdminRenewalsPage() {
       <div className="space-y-3">
         <h2 className="text-sm font-semibold text-foreground">Active Subscriptions ({active.length})</h2>
         <div className="rounded-xl border border-border bg-card">
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               {tableHead}
               <tbody className="divide-y divide-border">
@@ -170,6 +220,13 @@ export default function AdminRenewalsPage() {
                 ) : active.map(s => <SubRow key={s.id} s={s} />)}
               </tbody>
             </table>
+          </div>
+          <div className="md:hidden divide-y divide-border">
+            {loading ? (
+              <div className="py-8 text-center"><RiLoader4Line className="size-5 animate-spin inline text-muted-foreground" /></div>
+            ) : active.length === 0 ? (
+              <div className="px-4 py-8 text-center text-sm text-muted-foreground">No active subscriptions.</div>
+            ) : active.map(s => <SubCard key={s.id} s={s} />)}
           </div>
         </div>
       </div>

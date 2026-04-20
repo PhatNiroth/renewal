@@ -256,21 +256,21 @@ export default function SettingsPage() {
   const ActiveSection = sectionComponents[active]
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
+    <div className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground tracking-tight">Settings</h1>
+        <h1 className="text-xl md:text-2xl font-semibold text-foreground tracking-tight">Settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">Manage your account preferences.</p>
       </div>
 
-      <div className="flex flex-col gap-6 lg:flex-row">
+      <div className="flex flex-col gap-4 md:gap-6 lg:flex-row">
         {/* Left nav */}
-        <nav className="flex shrink-0 flex-col gap-1 lg:w-48">
+        <nav className="flex shrink-0 flex-row lg:flex-col gap-1 overflow-x-auto lg:overflow-visible lg:w-48">
           {sections.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setActive(id)}
               className={cn(
-                "cursor-pointer flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
+                "cursor-pointer flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left whitespace-nowrap shrink-0 lg:shrink",
                 active === id
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -283,7 +283,7 @@ export default function SettingsPage() {
         </nav>
 
         {/* Content */}
-        <div className="flex-1 rounded-xl border border-border bg-card p-6">
+        <div className="flex-1 rounded-xl border border-border bg-card p-4 md:p-6">
           <ActiveSection />
         </div>
       </div>

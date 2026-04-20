@@ -199,19 +199,19 @@ export default function AdminVendorsPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground tracking-tight">Vendors</h1>
+          <h1 className="text-xl md:text-2xl font-semibold text-foreground tracking-tight">Vendors</h1>
           <p className="mt-1 text-sm text-muted-foreground">Manage all vendor records.</p>
         </div>
-        <Button onClick={() => { setError(null); setForm(emptyForm()); setShowAdd(true) }}>
+        <Button onClick={() => { setError(null); setForm(emptyForm()); setShowAdd(true) }} className="self-start sm:self-auto">
           <RiAddLine className="size-4" data-icon="inline-start" />Add Vendor
         </Button>
       </div>
 
       <div className="rounded-xl border border-border bg-card">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
@@ -267,7 +267,59 @@ export default function AdminVendorsPage() {
             </tbody>
           </table>
         </div>
-        <div className="border-t border-border px-6 py-3 text-xs text-muted-foreground">{vendors.length} vendor{vendors.length !== 1 ? "s" : ""}</div>
+
+        {/* Card list (mobile) */}
+        <div className="md:hidden divide-y divide-border">
+          {loading ? (
+            <div className="py-12 text-center text-muted-foreground"><RiLoader4Line className="size-5 animate-spin inline" /></div>
+          ) : vendors.length === 0 ? (
+            <div className="px-4 py-12 text-center text-sm text-muted-foreground">No vendors yet.</div>
+          ) : vendors.map(v => (
+            <div key={v.id} className="px-4 py-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium text-foreground truncate">{v.name}</div>
+                  {v.website && <a href={v.website} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate block">{v.website}</a>}
+                </div>
+                {v.category && (
+                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium shrink-0 ${colorClass(v.category.color)}`}>
+                    {v.category.name}
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                <div className="col-span-2">
+                  <div className="text-muted-foreground">Contact</div>
+                  <div className="text-foreground">
+                    {v.contactName && <p className="truncate">{v.contactName}</p>}
+                    {v.contactEmail && <p className="truncate">{v.contactEmail}</p>}
+                    {!v.contactName && !v.contactEmail && "—"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Subscriptions</div>
+                  <div className="text-foreground">{v._count.subscriptions}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <Button variant="outline" size="sm" onClick={() => {
+                  setEditing(v)
+                  setEditForm({ name: v.name, categoryId: v.category?.id ?? "", website: v.website ?? "", contactEmail: v.contactEmail ?? "", contactName: v.contactName ?? "", notes: v.notes ?? "" })
+                  setError(null)
+                }} className="flex-1">
+                  <RiEditLine className="size-4" data-icon="inline-start" />Edit
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1 text-destructive hover:text-destructive" onClick={() => { setDeleting(v); setError(null) }}>
+                  <RiDeleteBinLine className="size-4" data-icon="inline-start" />Delete
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t border-border px-4 py-3 md:px-6 text-xs text-muted-foreground">{vendors.length} vendor{vendors.length !== 1 ? "s" : ""}</div>
       </div>
 
       {showAdd && (

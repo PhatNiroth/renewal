@@ -88,7 +88,7 @@ export function RenewalHistoryClient({
         </div>
       ) : (
         <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/40">
@@ -121,6 +121,42 @@ export function RenewalHistoryClient({
               </tbody>
             </table>
           </div>
+
+          {/* Card list (mobile) */}
+          <div className="md:hidden divide-y divide-border">
+            {filtered.map(log => (
+              <div key={log.id} className="px-4 py-4 space-y-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                    {log.subscription.vendor.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-medium text-foreground truncate">{log.subscription.vendor.name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{log.subscription.planName}</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  <div>
+                    <div className="text-muted-foreground">Previous Date</div>
+                    <div className="text-foreground">{fmtDate(log.previousDate)}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">New Date</div>
+                    <div className="text-foreground">{fmtDate(log.newDate)}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Renewed By</div>
+                    <div className="text-foreground truncate">{log.renewedBy.name || log.renewedBy.email}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Renewed At</div>
+                    <div className="text-foreground">{fmtDate(log.createdAt)}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
           <div className="px-4 py-3 border-t border-border text-xs text-muted-foreground">
             Showing {filtered.length} of {logs.length} records
           </div>

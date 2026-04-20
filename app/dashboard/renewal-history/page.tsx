@@ -10,7 +10,7 @@ export default async function RenewalHistoryPage() {
   const u = session.user as { isAdmin?: boolean; permissions?: Record<string, { view?: boolean }> }
   if (!u.isAdmin && !u.permissions?.RENEWALS?.view) {
     return (
-      <div className="p-6 lg:p-8">
+      <div className="p-4 md:p-6 lg:p-8">
         <p className="text-sm text-muted-foreground">You don't have permission to view this page.</p>
       </div>
     )
@@ -47,9 +47,9 @@ export default async function RenewalHistoryPage() {
   const users = [...new Set(logs.map(l => l.renewedBy.name || l.renewedBy.email))].sort()
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
+    <div className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground tracking-tight">Renewal History</h1>
+        <h1 className="text-xl md:text-2xl font-semibold text-foreground tracking-tight">Renewal History</h1>
         <p className="mt-1 text-sm text-muted-foreground">Log of all subscription renewals — who renewed, when, and what changed.</p>
       </div>
 

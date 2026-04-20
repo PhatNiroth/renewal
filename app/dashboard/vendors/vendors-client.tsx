@@ -211,15 +211,15 @@ export default function VendorsClient({
       {editing  && <EditModal   vendor={editing}  categories={categories} onClose={() => setEditing(null)}  onSuccess={reload} />}
       {deleting && <DeleteModal vendor={deleting} onClose={() => setDeleting(null)} onSuccess={reload} />}
 
-      <div className="p-6 lg:p-8 space-y-6">
+      <div className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground tracking-tight">Vendors</h1>
+            <h1 className="text-xl md:text-2xl font-semibold text-foreground tracking-tight">Vendors</h1>
             <p className="mt-1 text-sm text-muted-foreground">External service providers and contract partners.</p>
           </div>
           {canAdd && (
-            <Button onClick={() => setShowAdd(true)}>
+            <Button onClick={() => setShowAdd(true)} className="self-start sm:self-auto">
               <RiAddLine className="size-4" data-icon="inline-start" />New Vendor
             </Button>
           )}
@@ -227,7 +227,7 @@ export default function VendorsClient({
 
         {/* Table */}
         <div className="rounded-xl border border-border bg-card">
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
@@ -309,7 +309,85 @@ export default function VendorsClient({
               </tbody>
             </table>
           </div>
-          <div className="border-t border-border px-6 py-3 text-xs text-muted-foreground">
+
+          {/* Card list (mobile) */}
+          <div className="md:hidden divide-y divide-border">
+            {vendors.length === 0 ? (
+              <div className="px-4 py-12 text-center text-sm text-muted-foreground">
+                No vendors yet.{canAdd ? " Click \"New Vendor\" to add one." : ""}
+              </div>
+            ) : vendors.map(v => (
+              <div key={v.id} className="px-4 py-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-bold">
+                      {v.name.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-medium text-foreground truncate">{v.name}</div>
+                      <span className={cn(
+                        "inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium mt-0.5",
+                        v.isActive ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground"
+                      )}>
+                        {v.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                  </div>
+                  {v.category && (
+                    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium shrink-0 ${colorClass(v.category.color)}`}>
+                      {v.category.name}
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  <div className="col-span-2 min-w-0">
+                    <div className="text-muted-foreground">Website</div>
+                    <div className="text-foreground truncate">
+                      {v.website ? (
+                        <a href={v.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
+                          {v.website.replace(/^https?:\/\//, "")}
+                        </a>
+                      ) : "—"}
+                    </div>
+                  </div>
+                  <div className="col-span-2 min-w-0">
+                    <div className="text-muted-foreground">Contact</div>
+                    <div className="text-foreground min-w-0">
+                      {v.contactName && <p className="truncate">{v.contactName}</p>}
+                      {v.contactEmail && <p className="truncate break-all">{v.contactEmail}</p>}
+                      {!v.contactName && !v.contactEmail && "—"}
+                    </div>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-muted-foreground">Payment</div>
+                    <div className="text-foreground truncate">{v.paymentMethod ?? "—"}</div>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-muted-foreground">Subscriptions</div>
+                    <div className="text-foreground">{v._count.subscriptions}</div>
+                  </div>
+                </div>
+
+                {(canEdit || canDelete) && (
+                  <div className="flex items-center gap-2 pt-1">
+                    {canEdit && (
+                      <Button variant="outline" size="sm" onClick={() => setEditing(v)} className="flex-1">
+                        <RiEditLine className="size-4" data-icon="inline-start" />Edit
+                      </Button>
+                    )}
+                    {canDelete && (
+                      <Button variant="outline" size="sm" className="flex-1 text-destructive hover:text-destructive" onClick={() => setDeleting(v)}>
+                        <RiDeleteBinLine className="size-4" data-icon="inline-start" />Delete
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="border-t border-border px-4 py-3 md:px-6 text-xs text-muted-foreground">
             {vendors.length} vendor{vendors.length !== 1 ? "s" : ""}
           </div>
         </div>

@@ -418,15 +418,15 @@ export default function SubscriptionsClient({
         </Modal>
       )}
 
-      <div className="p-6 lg:p-8 space-y-6">
+      <div className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground tracking-tight">Subscriptions</h1>
+            <h1 className="text-xl md:text-2xl font-semibold text-foreground tracking-tight">Subscriptions</h1>
             <p className="mt-1 text-sm text-muted-foreground">All company service subscriptions and contracts.</p>
           </div>
           {canAdd && (
-            <Button size="sm" onClick={() => setShowModal(true)}>
+            <Button size="sm" onClick={() => setShowModal(true)} className="self-start sm:self-auto">
               <RiAddLine data-icon="inline-start" />Add Subscription
             </Button>
           )}
@@ -435,7 +435,7 @@ export default function SubscriptionsClient({
         {/* Table card */}
         <div className="rounded-xl border border-border bg-card">
           {/* Toolbar */}
-          <div className="flex flex-col gap-3 px-6 py-4 border-b border-border">
+          <div className="flex flex-col gap-3 px-4 py-3 md:px-6 md:py-4 border-b border-border">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="relative w-full sm:max-w-xs">
                 <RiSearchLine className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -488,8 +488,8 @@ export default function SubscriptionsClient({
             )}
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
+          {/* Table (md+) */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
@@ -580,9 +580,91 @@ export default function SubscriptionsClient({
             </table>
           </div>
 
+          {/* Card list (mobile) */}
+          <div className="md:hidden divide-y divide-border">
+            {filtered.length === 0 ? (
+              <div className="px-4 py-12 text-center text-sm text-muted-foreground">
+                {subscriptions.length === 0
+                  ? "No subscriptions yet. Click \"Add Subscription\" to create one."
+                  : "No subscriptions match your search."}
+              </div>
+            ) : filtered.map(sub => {
+              const status    = statusConfig[sub.status]
+              const StatusIcon = status?.icon ?? RiCheckLine
+              const days      = daysUntil(sub.renewalDate)
+              const isUrgent  = days <= 7 && days >= 0 && sub.status === "ACTIVE"
+
+              return (
+                <div key={sub.id} className="px-4 py-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium text-foreground truncate">{sub.vendor.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">{sub.planName}</div>
+                    </div>
+                    <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium shrink-0 ${status?.className}`}>
+                      <StatusIcon className="size-3" />
+                      {status?.label}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                    <div>
+                      <div className="text-muted-foreground">Cost</div>
+                      <div className="font-medium text-foreground">{fmt(sub.cost)}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Cycle</div>
+                      <div className="text-foreground">{cycleLabel[sub.billingCycle] ?? sub.billingCycle}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Renewal</div>
+                      <div className={isUrgent ? "text-amber-600 dark:text-amber-400 font-medium" : "text-foreground"}>
+                        {fmtDate(sub.renewalDate)}
+                        {isUrgent && (
+                          <span className="ml-1.5 inline-flex items-center rounded-md bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-600 dark:text-amber-400">
+                            {days}d
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Department</div>
+                      <div className="text-foreground truncate">{deptLabel((sub as SubscriptionFull & { department?: string | null }).department) ?? "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Responsible</div>
+                      <div className="text-foreground truncate">{sub.responsible?.name ?? sub.responsible?.email ?? "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Document</div>
+                      <div className="text-foreground truncate">
+                        {sub.documentPath ? (
+                          sub.documentPath.startsWith("http")
+                            ? <a href={sub.documentPath} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline"><RiLink className="size-3" />View</a>
+                            : <span className="font-mono">{sub.documentPath}</span>
+                        ) : "—"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {canEdit && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button variant="outline" size="sm" onClick={() => setEditing(sub)} className="flex-1">
+                        <RiEditLine className="size-4" data-icon="inline-start" />Edit
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1 text-destructive hover:text-destructive" onClick={() => { setDeleting(sub); setDeleteError(null) }}>
+                        <RiDeleteBinLine className="size-4" data-icon="inline-start" />Delete
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
           {/* Footer */}
-          <div className="px-6 py-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-            <span>Showing {filtered.length} of {subscriptions.length} subscriptions</span>
+          <div className="px-4 py-3 md:px-6 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+            <span>Showing {filtered.length} of {subscriptions.length}</span>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" disabled>Previous</Button>
               <Button variant="outline" size="sm" disabled>Next</Button>

@@ -62,6 +62,28 @@ function daysUntil(d: Date | string) {
 }
 function toInput(d: Date | string) { return new Date(d).toISOString().split("T")[0] }
 
+// Auto-computes renewal date from a start date (YYYY-MM-DD) + cycle. UTC-safe.
+// Returns "" for invalid input, or when ONE_TIME (caller manages that case).
+function computeRenewalDate(startIso: string, cycle: string, customDays: number | null): string {
+  if (!startIso) return ""
+  const [y, m, d] = startIso.split("-").map(Number)
+  if (!y || !m || !d) return ""
+  const dt = new Date(Date.UTC(y, m - 1, d))
+  switch (cycle) {
+    case "MONTHLY":   dt.setUTCMonth(dt.getUTCMonth() + 1); break
+    case "QUARTERLY": dt.setUTCMonth(dt.getUTCMonth() + 3); break
+    case "SEMESTER":  dt.setUTCMonth(dt.getUTCMonth() + 6); break
+    case "YEARLY":    dt.setUTCFullYear(dt.getUTCFullYear() + 1); break
+    case "CUSTOM":
+      if (!customDays || customDays < 1) return ""
+      dt.setUTCDate(dt.getUTCDate() + customDays)
+      break
+    case "ONE_TIME":  return ""
+    default:          return ""
+  }
+  return dt.toISOString().split("T")[0]
+}
+
 // ─── Add Modal ────────────────────────────────────────────────────────────────
 
 function AddSubscriptionModal({
@@ -78,18 +100,31 @@ function AddSubscriptionModal({
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [today, setToday] = useState("")
+  const [startDate, setStartDate]       = useState("")
+  const [billingCycle, setBillingCycle] = useState<string>("MONTHLY")
+  const [customDays, setCustomDays]     = useState("")
+  const [renewalDate, setRenewalDate]   = useState("")
 
   useEffect(() => {
-    setToday(new Date().toISOString().split("T")[0])
+    const t = new Date().toISOString().split("T")[0]
+    setToday(t)
+    setStartDate(t)
   }, [])
+
+  // Auto-update renewal date when start date or billing cycle changes.
+  useEffect(() => {
+    const days = customDays ? parseInt(customDays) : null
+    const next = computeRenewalDate(startDate, billingCycle, days)
+    if (next) setRenewalDate(next)
+  }, [startDate, billingCycle, customDays])
 
   function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
     const formData = new FormData(e.currentTarget)
-    const startDate = formData.get("startDate") as string
-    const renewalDate = formData.get("renewalDate") as string
-    if (startDate && renewalDate && new Date(renewalDate) <= new Date(startDate)) {
+    const sd = formData.get("startDate") as string
+    const rd = formData.get("renewalDate") as string
+    if (sd && rd && new Date(rd) <= new Date(sd)) {
       setError("Renewal date must be after start date")
       return
     }
@@ -138,27 +173,34 @@ function AddSubscriptionModal({
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Billing Cycle</label>
-            <select name="billingCycle" defaultValue="MONTHLY" onChange={e => {
-              const wrap = (e.target as HTMLSelectElement).closest("form")?.querySelector("[data-custom-days]") as HTMLElement | null
-              if (wrap) wrap.style.display = e.target.value === "CUSTOM" ? "block" : "none"
-            }} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+            <select
+              name="billingCycle"
+              value={billingCycle}
+              onChange={e => setBillingCycle(e.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
               {Object.entries(cycleLabel).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </div>
 
-          <div data-custom-days style={{ display: "none" }} className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Custom Duration (days) <span className="text-destructive">*</span></label>
-            <Input name="customDays" type="number" min="1" placeholder="e.g. 90" />
-          </div>
+          {billingCycle === "CUSTOM" && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Custom Duration (days) <span className="text-destructive">*</span></label>
+              <Input name="customDays" type="number" min="1" placeholder="e.g. 90" value={customDays} onChange={e => setCustomDays(e.target.value)} />
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Start Date <span className="text-destructive">*</span></label>
-            <Input name="startDate" type="date" defaultValue={today} required />
+            <Input name="startDate" type="date" value={startDate || today} onChange={e => setStartDate(e.target.value)} required />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Renewal Date <span className="text-destructive">*</span></label>
-            <Input name="renewalDate" type="date" required />
+            <label className="text-sm font-medium text-foreground">
+              Renewal Date <span className="text-destructive">*</span>
+              {billingCycle !== "ONE_TIME" && <span className="ml-1.5 text-xs font-normal text-muted-foreground">(auto)</span>}
+            </label>
+            <Input name="renewalDate" type="date" value={renewalDate} onChange={e => setRenewalDate(e.target.value)} required />
           </div>
 
           <div className="col-span-2 space-y-1.5">
@@ -218,6 +260,16 @@ function EditSubscriptionModal({
 }) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [startDate, setStartDate]       = useState(toInput(sub.startDate))
+  const [billingCycle, setBillingCycle] = useState<string>(sub.billingCycle)
+  const [customDays, setCustomDays]     = useState(sub.customDays?.toString() ?? "")
+  const [renewalDate, setRenewalDate]   = useState(toInput(sub.renewalDate))
+
+  useEffect(() => {
+    const days = customDays ? parseInt(customDays) : null
+    const next = computeRenewalDate(startDate, billingCycle, days)
+    if (next) setRenewalDate(next)
+  }, [startDate, billingCycle, customDays])
 
   function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -225,17 +277,21 @@ function EditSubscriptionModal({
     const fd = new FormData(e.currentTarget)
     const cost = fd.get("cost") as string
     const costCents = Math.round(parseFloat(cost || "0") * 100)
-    const billingCycle = fd.get("billingCycle") as "MONTHLY" | "QUARTERLY" | "SEMESTER" | "YEARLY" | "ONE_TIME" | "CUSTOM"
-    const customDaysRaw = fd.get("customDays") as string
+    const cycle = billingCycle as "MONTHLY" | "QUARTERLY" | "SEMESTER" | "YEARLY" | "ONE_TIME" | "CUSTOM"
+    if (startDate && renewalDate && new Date(renewalDate) <= new Date(startDate)) {
+      setError("Renewal date must be after start date")
+      return
+    }
     startTransition(async () => {
       const deptVal = fd.get("department") as string
       const result = await updateSubscription(sub.id, {
         planName:      fd.get("planName") as string,
         department:    (deptVal || null) as import("@prisma/client").Department | null,
         cost:          costCents,
-        billingCycle,
-        customDays:    billingCycle === "CUSTOM" && customDaysRaw ? parseInt(customDaysRaw) : null,
-        renewalDate:   new Date(fd.get("renewalDate") as string),
+        billingCycle:  cycle,
+        customDays:    cycle === "CUSTOM" && customDays ? parseInt(customDays) : null,
+        startDate:     new Date(startDate),
+        renewalDate:   new Date(renewalDate),
         status:        fd.get("status") as "ACTIVE" | "EXPIRING_SOON" | "EXPIRED" | "CANCELLED" | "PENDING",
         responsibleId: (fd.get("responsibleId") as string) || null,
         notes:         (fd.get("notes") as string) || null,
@@ -278,22 +334,34 @@ function EditSubscriptionModal({
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Billing Cycle</label>
-            <select name="billingCycle" defaultValue={sub.billingCycle} onChange={e => {
-              const wrap = (e.target as HTMLSelectElement).closest("form")?.querySelector("[data-custom-days-edit]") as HTMLElement | null
-              if (wrap) wrap.style.display = e.target.value === "CUSTOM" ? "block" : "none"
-            }} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+            <select
+              name="billingCycle"
+              value={billingCycle}
+              onChange={e => setBillingCycle(e.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
               {Object.entries(cycleLabel).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </div>
 
-          <div data-custom-days-edit style={{ display: sub.billingCycle === "CUSTOM" ? "block" : "none" }} className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Custom Duration (days)</label>
-            <Input name="customDays" type="number" min="1" defaultValue={(sub as any).customDays ?? ""} placeholder="e.g. 90" />
+          {billingCycle === "CUSTOM" && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Custom Duration (days)</label>
+              <Input name="customDays" type="number" min="1" value={customDays} onChange={e => setCustomDays(e.target.value)} placeholder="e.g. 90" />
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Start Date <span className="text-destructive">*</span></label>
+            <Input name="startDate" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Renewal Date <span className="text-destructive">*</span></label>
-            <Input name="renewalDate" type="date" defaultValue={toInput(sub.renewalDate)} required />
+            <label className="text-sm font-medium text-foreground">
+              Renewal Date <span className="text-destructive">*</span>
+              {billingCycle !== "ONE_TIME" && <span className="ml-1.5 text-xs font-normal text-muted-foreground">(auto)</span>}
+            </label>
+            <Input name="renewalDate" type="date" value={renewalDate} onChange={e => setRenewalDate(e.target.value)} required />
           </div>
 
           <div className="space-y-1.5">

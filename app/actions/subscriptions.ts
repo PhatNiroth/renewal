@@ -79,6 +79,7 @@ export async function updateSubscription(
     cost: number
     billingCycle: BillingCycle
     customDays: number | null
+    startDate: Date
     renewalDate: Date
     status: SubscriptionStatus
     responsibleId: string | null
@@ -91,6 +92,10 @@ export async function updateSubscription(
   const u = getUser(session)
   if (!u) return { error: "Unauthorized" }
   if (!u.isAdmin && !u.permissions?.SUBSCRIPTIONS?.edit) return { error: "Forbidden" }
+
+  if (data.startDate && data.renewalDate && data.renewalDate <= data.startDate) {
+    return { error: "Renewal date must be after start date" }
+  }
 
   try {
     await db.subscription.update({ where: { id: subscriptionId }, data })

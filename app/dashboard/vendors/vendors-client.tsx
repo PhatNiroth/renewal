@@ -245,7 +245,6 @@ export default function VendorsClient({
                   <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Website</th>
                   <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Contact</th>
                   <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Payment Method</th>
-                  <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Subs.</th>
                   <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Notes</th>
                   {(canEdit || canDelete) && <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Action</th>}
                 </tr>
@@ -253,7 +252,7 @@ export default function VendorsClient({
               <tbody className="divide-y divide-border">
                 {vendors.length === 0 ? (
                   <tr>
-                    <td colSpan={canEdit || canDelete ? 8 : 7} className="py-12 text-center text-sm text-muted-foreground">
+                    <td colSpan={canEdit || canDelete ? 7 : 6} className="py-12 text-center text-sm text-muted-foreground">
                       No vendors yet.{canAdd ? " Click \"New Vendor\" to add one." : ""}
                     </td>
                   </tr>
@@ -290,7 +289,6 @@ export default function VendorsClient({
                       {!v.contactName && !v.contactEmail && !v.contactPhone && <span className="opacity-40">—</span>}
                     </td>
                     <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground truncate">{v.paymentMethod ?? <span className="opacity-40">—</span>}</td>
-                    <td className="px-4 xl:px-6 py-3.5 text-muted-foreground">{v._count.subscriptions}</td>
                     <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground">
                       {v.notes ? (
                         <span className="block max-w-60 truncate text-xs" title={v.notes}>{v.notes}</span>

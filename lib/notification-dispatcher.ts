@@ -2,7 +2,7 @@ import { db } from "./db"
 import { sendEmail } from "./email"
 import { sendTelegramMessage } from "./telegram"
 import { nextRenewalDate } from "./renewal-utils"
-import { BillingCycle, NotifType, SubscriptionStatus } from "@prisma/client"
+import { BillingCycle, NotifType, Prisma, SubscriptionStatus } from "@prisma/client"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -141,8 +141,9 @@ export async function runNotificationDispatcher(): Promise<DispatchResult> {
     })
 
     for (const sub of subscriptions) {
-      // Already sent for this window — skip
-      if (sub.notificationLogs.some(l => l.sentAt !== null)) {
+      // Any existing row (sent or in-progress) means another worker has claimed this window.
+      // Only the worker that wins the create() below is allowed to send.
+      if (sub.notificationLogs.length > 0) {
         skipped++
         continue
       }
@@ -174,16 +175,25 @@ export async function runNotificationDispatcher(): Promise<DispatchResult> {
         continue
       }
 
-      // Create log row now (sentAt null = in progress)
-      // This also acts as a lock — second concurrent run sees this row and skips
-      const log = await db.notificationLog.create({
-        data: {
-          subscriptionId: sub.id,
-          type,
-          scheduledFor:   from,
-          recipients:     recipients.map(r => ({ name: r.name, email: r.email })),
-        },
-      })
+      // Create the log row as an atomic claim. If another worker beat us, P2002 means
+      // they already own this send — skip to avoid duplicate delivery.
+      let log
+      try {
+        log = await db.notificationLog.create({
+          data: {
+            subscriptionId: sub.id,
+            type,
+            scheduledFor:   from,
+            recipients:     recipients.map(r => ({ name: r.name, email: r.email })),
+          },
+        })
+      } catch (err) {
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+          skipped++
+          continue
+        }
+        throw err
+      }
 
       try {
         const renewalDateStr = sub.renewalDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })

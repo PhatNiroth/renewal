@@ -58,6 +58,7 @@ export interface DispatchResult {
   sent: number
   skipped: number
   errors: number
+  telegramErrors: number
 }
 
 export async function syncSubscriptionStatuses(): Promise<void> {
@@ -111,7 +112,7 @@ export async function syncSubscriptionStatuses(): Promise<void> {
 export async function runNotificationDispatcher(): Promise<DispatchResult> {
   await syncSubscriptionStatuses()
   const now = new Date()
-  let sent = 0, skipped = 0, errors = 0
+  let sent = 0, skipped = 0, errors = 0, telegramErrors = 0
 
   // Fallback recipients when no responsible user is assigned
   const admins = await db.user.findMany({
@@ -205,9 +206,10 @@ export async function runNotificationDispatcher(): Promise<DispatchResult> {
         const groupChatId = process.env.TELEGRAM_GROUP_CHAT_ID
         if (groupChatId) {
           const telegramText = `🔔 ${headline}\n\nVendor: ${sub.vendor.name}\nPlan: ${sub.planName}\nCost: ${costStr}\nDue: ${renewalDateStr}\n\n${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscriptions`
-          await sendTelegramMessage(groupChatId, telegramText).catch(err =>
+          await sendTelegramMessage(groupChatId, telegramText).catch(err => {
             console.error(`[notifications] Telegram group failed (${type}):`, err)
-          )
+            telegramErrors++
+          })
         }
 
         // Mark log as sent
@@ -226,6 +228,6 @@ export async function runNotificationDispatcher(): Promise<DispatchResult> {
     }
   }
 
-  console.log(`[notifications] Done — sent: ${sent}, skipped: ${skipped}, errors: ${errors}`)
-  return { sent, skipped, errors }
+  console.log(`[notifications] Done — sent: ${sent}, skipped: ${skipped}, errors: ${errors}, telegramErrors: ${telegramErrors}`)
+  return { sent, skipped, errors, telegramErrors }
 }

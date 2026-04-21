@@ -37,23 +37,25 @@ function ProfileSection() {
   function handleSave(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
-    const fd   = new FormData(e.currentTarget)
-    const name = (fd.get("name") as string).trim()
+    const fd    = new FormData(e.currentTarget)
+    const name  = (fd.get("name") as string).trim()
+    const email = (fd.get("email") as string).trim().toLowerCase()
 
-    if (!name) { setError("Name cannot be empty"); return }
+    if (!name)  { setError("Name cannot be empty"); return }
+    if (!email) { setError("Email cannot be empty"); return }
 
     startTransition(async () => {
       const res = await fetch("/api/user/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, email }),
       })
       if (!res.ok) {
         const json = await res.json().catch(() => ({}))
         setError(json.error ?? "Failed to save")
         return
       }
-      await update({ name })
+      await update({ name, email })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     })
@@ -75,8 +77,8 @@ function ProfileSection() {
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-foreground">Email</label>
-        <Input value={userEmail} disabled className="opacity-60 cursor-not-allowed" readOnly />
-        <p className="text-xs text-muted-foreground">Email cannot be changed. Contact an admin.</p>
+        <Input name="email" type="email" defaultValue={userEmail} placeholder="you@example.com" required />
+        <p className="text-xs text-muted-foreground">You'll use this email to sign in.</p>
       </div>
 
       <div className="space-y-1.5">

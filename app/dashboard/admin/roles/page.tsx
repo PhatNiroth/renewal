@@ -14,7 +14,7 @@ const ACTIONS = ["view", "add", "edit", "delete"] as const
 
 const MODULE_LABELS: Record<string, string> = {
   SUBSCRIPTIONS:    "Subscriptions",
-  RENEWALS:         "Renewals",
+  RENEWALS:         "Renewals (Upcoming + History)",
   VENDORS:          "Vendors",
   VENDOR_CATEGORIES:"Vendor Categories",
 }

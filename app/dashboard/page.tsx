@@ -22,11 +22,10 @@ const statusColors: Record<string, string> = {
   EXPIRING_SOON: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
   EXPIRED:       "bg-destructive/10 text-destructive",
   CANCELLED:     "bg-muted text-muted-foreground",
-  PENDING:       "bg-blue-500/10 text-blue-600 dark:text-blue-400",
 }
 const statusLabels: Record<string, string> = {
   ACTIVE: "Active", EXPIRING_SOON: "Expiring Soon",
-  EXPIRED: "Expired", CANCELLED: "Cancelled", PENDING: "Pending",
+  EXPIRED: "Expired", CANCELLED: "Cancelled",
 }
 
 export default async function DashboardPage() {
@@ -37,7 +36,7 @@ export default async function DashboardPage() {
   const canViewSubs    = u.isAdmin || u.permissions?.SUBSCRIPTIONS?.view === true
   const canViewRenewals = u.isAdmin || u.permissions?.RENEWALS?.view === true
 
-  const subscriptions = canViewSubs ? await db.subscription.findMany({
+  const subscriptions = (canViewSubs || canViewRenewals) ? await db.subscription.findMany({
     include: { vendor: true, responsible: true },
     orderBy: { renewalDate: "asc" },
   }) : []

@@ -22,9 +22,8 @@ const STATUS_COLORS: Record<string, string> = {
   EXPIRING_SOON: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
   EXPIRED:       "bg-destructive/10 text-destructive",
   CANCELLED:     "bg-muted text-muted-foreground",
-  PENDING:       "bg-blue-500/10 text-blue-600 dark:text-blue-400",
 }
-const STATUS_LABELS: Record<string, string> = { ACTIVE: "Active", EXPIRING_SOON: "Expiring Soon", EXPIRED: "Expired", CANCELLED: "Cancelled", PENDING: "Pending" }
+const STATUS_LABELS: Record<string, string> = { ACTIVE: "Active", EXPIRING_SOON: "Expiring Soon", EXPIRED: "Expired", CANCELLED: "Cancelled" }
 const CYCLE_LABELS:  Record<string, string> = { MONTHLY: "Monthly", QUARTERLY: "Quarterly", SEMESTER: "Semester", YEARLY: "Yearly", ONE_TIME: "One-time", CUSTOM: "Custom" }
 
 function fmt(n: number) { return `$${(n / 100).toLocaleString("en-US", { minimumFractionDigits: 0 })}` }

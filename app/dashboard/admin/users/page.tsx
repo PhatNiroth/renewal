@@ -51,6 +51,10 @@ export default function AdminUsersPage() {
   useEffect(() => { load() }, [load])
 
   async function handleAdd() {
+    if (!form.roleId && !form.isAdmin) {
+      setError("Select a role or grant admin permission")
+      return
+    }
     setSaving(true); setError(null)
     const res = await fetch("/api/admin/users", {
       method: "POST",

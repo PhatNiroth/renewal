@@ -25,7 +25,6 @@ const statusConfig: Record<string, { label: string; className: string; icon: Rea
   EXPIRING_SOON:  { label: "Expiring Soon",  className: "bg-amber-500/10 text-amber-600 dark:text-amber-400",      icon: RiAlertLine  },
   EXPIRED:        { label: "Expired",        className: "bg-destructive/10 text-destructive",                       icon: RiCloseLine  },
   CANCELLED:      { label: "Cancelled",      className: "bg-muted text-muted-foreground",                          icon: RiCloseLine  },
-  PENDING:        { label: "Pending",        className: "bg-blue-500/10 text-blue-600 dark:text-blue-400",         icon: RiTimeLine   },
 }
 
 const cycleLabel: Record<string, string> = {
@@ -50,7 +49,7 @@ function deptLabel(value: string | null | undefined) {
   return DEPARTMENTS.find(d => d.value === value)?.label ?? value
 }
 
-const ALL_STATUSES = ["ACTIVE", "EXPIRING_SOON", "EXPIRED", "CANCELLED", "PENDING"]
+const ALL_STATUSES = ["ACTIVE", "EXPIRING_SOON", "EXPIRED", "CANCELLED"]
 
 function fmt(n: number) { return `$${(n / 100).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` }
 function fmtDate(d: Date | string | null) {
@@ -265,11 +264,11 @@ function EditSubscriptionModal({
   const [customDays, setCustomDays]     = useState(sub.customDays?.toString() ?? "")
   const [renewalDate, setRenewalDate]   = useState(toInput(sub.renewalDate))
 
-  useEffect(() => {
-    const days = customDays ? parseInt(customDays) : null
-    const next = computeRenewalDate(startDate, billingCycle, days)
+  const recalcRenewal = (sd: string, cycle: string, days: string) => {
+    const n = days ? parseInt(days) : null
+    const next = computeRenewalDate(sd, cycle, n)
     if (next) setRenewalDate(next)
-  }, [startDate, billingCycle, customDays])
+  }
 
   function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -292,7 +291,7 @@ function EditSubscriptionModal({
         customDays:    cycle === "CUSTOM" && customDays ? parseInt(customDays) : null,
         startDate:     new Date(startDate),
         renewalDate:   new Date(renewalDate),
-        status:        fd.get("status") as "ACTIVE" | "EXPIRING_SOON" | "EXPIRED" | "CANCELLED" | "PENDING",
+        status:        fd.get("status") as "ACTIVE" | "EXPIRING_SOON" | "EXPIRED" | "CANCELLED",
         responsibleId: (fd.get("responsibleId") as string) || null,
         notes:         (fd.get("notes") as string) || null,
         documentPath:  (fd.get("documentPath") as string) || null,
@@ -337,7 +336,7 @@ function EditSubscriptionModal({
             <select
               name="billingCycle"
               value={billingCycle}
-              onChange={e => setBillingCycle(e.target.value)}
+              onChange={e => { setBillingCycle(e.target.value); recalcRenewal(startDate, e.target.value, customDays) }}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
               {Object.entries(cycleLabel).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -347,13 +346,13 @@ function EditSubscriptionModal({
           {billingCycle === "CUSTOM" && (
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">Custom Duration (days)</label>
-              <Input name="customDays" type="number" min="1" value={customDays} onChange={e => setCustomDays(e.target.value)} placeholder="e.g. 90" />
+              <Input name="customDays" type="number" min="1" value={customDays} onChange={e => { setCustomDays(e.target.value); recalcRenewal(startDate, billingCycle, e.target.value) }} placeholder="e.g. 90" />
             </div>
           )}
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Start Date <span className="text-destructive">*</span></label>
-            <Input name="startDate" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required />
+            <Input name="startDate" type="date" value={startDate} onChange={e => { setStartDate(e.target.value); recalcRenewal(e.target.value, billingCycle, customDays) }} required />
           </div>
 
           <div className="space-y-1.5">
@@ -439,6 +438,8 @@ export default function SubscriptionsClient({
   const [editing, setEditing]           = useState<SubscriptionFull | null>(null)
   const [deleting, setDeleting]         = useState<SubscriptionFull | null>(null)
   const [deleteError, setDeleteError]   = useState<string | null>(null)
+  const [page, setPage]                 = useState(1)
+  const pageSize                        = 10
   const [, startTransition]             = useTransition()
 
   const toggleSort = (key: typeof sortKey) => {
@@ -465,6 +466,18 @@ export default function SubscriptionsClient({
       if (sortKey === "renewal") cmp = new Date(a.renewalDate).getTime() - new Date(b.renewalDate).getTime()
       return sortDir === "asc" ? cmp : -cmp
     })
+
+  const filterKey = `${search}|${statusFilter}|${deptFilter}|${sortKey}|${sortDir}`
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey)
+  if (prevFilterKey !== filterKey) {
+    setPrevFilterKey(filterKey)
+    setPage(1)
+  }
+  const totalPages  = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const rangeStart  = filtered.length === 0 ? 0 : (currentPage - 1) * pageSize + 1
+  const rangeEnd    = Math.min(currentPage * pageSize, filtered.length)
+  const paged       = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   const sortIcon = (col: typeof sortKey) =>
     sortKey === col
@@ -598,35 +611,45 @@ export default function SubscriptionsClient({
                   <th className="cursor-pointer select-none px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("renewal")}>
                     Renewal {sortIcon("renewal")}
                   </th>
-                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Notes</th>
-                  <th
-                    className="cursor-pointer select-none px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={() => toggleSort("cost")}
-                    title="Click to sort by cost"
-                  >
-                    Details {sortIcon("cost")}
+                  <th className="cursor-pointer select-none px-4 xl:px-6 py-3 text-right font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("cost")}>
+                    Cost {sortIcon("cost")}
                   </th>
-                  {canEdit && <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Action</th>}
+                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Cycle</th>
+                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Responsible</th>
+                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Notes</th>
+                  {canEdit && <th className="px-4 xl:px-6 py-3 text-right font-medium text-muted-foreground">Action</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={canEdit ? 8 : 7} className="px-6 py-16 text-center text-sm text-muted-foreground">
+                    <td colSpan={canEdit ? 10 : 9} className="px-6 py-16 text-center text-sm text-muted-foreground">
                       {subscriptions.length === 0
                         ? "No subscriptions yet. Click \"New Subscription\" to create one."
                         : "No subscriptions match your search."}
                     </td>
                   </tr>
-                ) : filtered.map(sub => {
+                ) : paged.map(sub => {
                   const status    = statusConfig[sub.status]
                   const StatusIcon = status?.icon ?? RiCheckLine
                   const days      = daysUntil(sub.renewalDate)
                   const isUrgent  = days <= 7 && days >= 0 && sub.status === "ACTIVE"
+                  const dept      = deptLabel((sub as SubscriptionFull & { department?: string | null }).department)
 
                   return (
                     <tr key={sub.id} className="hover:bg-muted/40 transition-colors">
-                      <td className="px-4 xl:px-6 py-3.5 font-medium text-foreground truncate">{sub.planName}</td>
+                      <td className="px-4 xl:px-6 py-3.5">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-medium text-foreground truncate">{sub.planName}</span>
+                          {sub.documentPath && (
+                            sub.documentPath.startsWith("http")
+                              ? <a href={sub.documentPath} target="_blank" rel="noreferrer" title="View document" className="shrink-0 text-primary hover:text-primary/80"><RiLink className="size-3.5" /></a>
+                              : <span title={sub.documentPath} className="shrink-0 text-muted-foreground/70">
+                                  <RiLink className="size-3.5" />
+                                </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 xl:px-6 py-3.5 text-muted-foreground truncate">
                         <span className="inline-flex items-center gap-1.5">
                           {sub.vendor.name}
@@ -635,7 +658,7 @@ export default function SubscriptionsClient({
                           )}
                         </span>
                       </td>
-                      <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground truncate">{deptLabel((sub as any).department) ?? <span className="text-muted-foreground/40">—</span>}</td>
+                      <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground truncate">{dept ?? <span className="text-muted-foreground/40">—</span>}</td>
                       <td className="px-4 xl:px-6 py-3.5">
                         <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${status?.className}`}>
                           <StatusIcon className="size-3" />
@@ -652,45 +675,22 @@ export default function SubscriptionsClient({
                           </span>
                         )}
                       </td>
+                      <td className="px-4 xl:px-6 py-3.5 text-right font-medium text-foreground tabular-nums">{fmt(sub.cost)}</td>
                       <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground">
-                        {sub.notes ? (
-                          <span className="block max-w-60 truncate text-xs" title={sub.notes}>{sub.notes}</span>
-                        ) : <span className="text-muted-foreground/50">—</span>}
+                        {cycleLabel[sub.billingCycle] ?? sub.billingCycle}
+                        {sub.billingCycle === "CUSTOM" && sub.customDays ? ` (${sub.customDays}d)` : ""}
                       </td>
-                      <td className="px-4 xl:px-6 py-3.5 text-xs">
-                        <div className="space-y-1">
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="inline-flex w-12 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">Cost</span>
-                            <span className="font-medium text-foreground">{fmt(sub.cost)}</span>
-                          </div>
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="inline-flex w-12 shrink-0 items-center justify-center rounded-md bg-indigo-500/10 px-1.5 py-0.5 text-[10px] font-medium text-indigo-600 dark:text-indigo-400">Cycle</span>
-                            <span className="text-foreground">
-                              {cycleLabel[sub.billingCycle] ?? sub.billingCycle}
-                              {sub.billingCycle === "CUSTOM" && sub.customDays ? ` (${sub.customDays}d)` : ""}
-                            </span>
-                          </div>
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="inline-flex w-12 shrink-0 items-center justify-center rounded-md bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-600 dark:text-violet-400">Resp</span>
-                            <span className="text-foreground truncate">
-                              {sub.responsible?.name ?? sub.responsible?.email ?? <span className="text-muted-foreground/50">—</span>}
-                            </span>
-                          </div>
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="inline-flex w-12 shrink-0 items-center justify-center rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">Doc</span>
-                            <span className="truncate">
-                              {sub.documentPath ? (
-                                sub.documentPath.startsWith("http")
-                                  ? <a href={sub.documentPath} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline"><RiLink className="size-3" />View</a>
-                                  : <span className="text-foreground font-mono">{sub.documentPath}</span>
-                              ) : <span className="text-muted-foreground/50">—</span>}
-                            </span>
-                          </div>
-                        </div>
+                      <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground truncate">
+                        {sub.responsible?.name ?? sub.responsible?.email ?? <span className="text-muted-foreground/40">—</span>}
+                      </td>
+                      <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground">
+                        {sub.notes
+                          ? <span title={sub.notes} className="block truncate max-w-50">{sub.notes}</span>
+                          : <span className="text-muted-foreground/40">—</span>}
                       </td>
                       {canEdit && (
                         <td className="px-4 xl:px-6 py-3.5">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-end gap-2">
                             <Button variant="outline" size="icon-sm" onClick={() => setEditing(sub)}>
                               <RiEditLine className="size-4" />
                             </Button>
@@ -715,7 +715,7 @@ export default function SubscriptionsClient({
                   ? "No subscriptions yet. Click \"New Subscription\" to create one."
                   : "No subscriptions match your search."}
               </div>
-            ) : filtered.map(sub => {
+            ) : paged.map(sub => {
               const status    = statusConfig[sub.status]
               const StatusIcon = status?.icon ?? RiCheckLine
               const days      = daysUntil(sub.renewalDate)
@@ -796,10 +796,29 @@ export default function SubscriptionsClient({
 
           {/* Footer */}
           <div className="px-4 py-3 md:px-6 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-            <span>Showing {filtered.length} of {subscriptions.length}</span>
+            <span>
+              {filtered.length === 0
+                ? `0 of ${subscriptions.length}`
+                : `Showing ${rangeStart}–${rangeEnd} of ${filtered.length}`}
+            </span>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled>Previous</Button>
-              <Button variant="outline" size="sm" disabled>Next</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+              >
+                Previous
+              </Button>
+              <span className="px-1">Page {currentPage} of {totalPages}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </Button>
             </div>
           </div>
         </div>

@@ -211,6 +211,14 @@ export default function VendorsClient({
   const [showAdd, setShowAdd]       = useState(false)
   const [editing, setEditing]       = useState<VendorRow | null>(null)
   const [deleting, setDeleting]     = useState<VendorRow | null>(null)
+  const [page, setPage]             = useState(1)
+  const pageSize                    = 10
+
+  const totalPages  = Math.max(1, Math.ceil(vendors.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const rangeStart  = vendors.length === 0 ? 0 : (currentPage - 1) * pageSize + 1
+  const rangeEnd    = Math.min(currentPage * pageSize, vendors.length)
+  const paged       = vendors.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   function reload() { router.refresh() }
 
@@ -256,7 +264,7 @@ export default function VendorsClient({
                       No vendors yet.{canAdd ? " Click \"New Vendor\" to add one." : ""}
                     </td>
                   </tr>
-                ) : vendors.map(v => (
+                ) : paged.map(v => (
                   <tr key={v.id} className="hover:bg-muted/40 transition-colors">
                     <td className="px-4 xl:px-6 py-3.5">
                       <div className="flex items-center gap-2.5 min-w-0">
@@ -322,7 +330,7 @@ export default function VendorsClient({
               <div className="px-4 py-12 text-center text-sm text-muted-foreground">
                 No vendors yet.{canAdd ? " Click \"New Vendor\" to add one." : ""}
               </div>
-            ) : vendors.map(v => (
+            ) : paged.map(v => (
               <div key={v.id} className="px-4 py-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -388,8 +396,31 @@ export default function VendorsClient({
             ))}
           </div>
 
-          <div className="border-t border-border px-4 py-3 md:px-6 text-xs text-muted-foreground">
-            {vendors.length} vendor{vendors.length !== 1 ? "s" : ""}
+          <div className="border-t border-border px-4 py-3 md:px-6 flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {vendors.length === 0
+                ? "0 vendors"
+                : `Showing ${rangeStart}–${rangeEnd} of ${vendors.length}`}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+              >
+                Previous
+              </Button>
+              <span className="px-1">Page {currentPage} of {totalPages}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         </div>
       </div>

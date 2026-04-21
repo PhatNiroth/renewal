@@ -249,7 +249,6 @@ enum SubscriptionStatus {
   EXPIRING_SOON
   EXPIRED
   CANCELLED
-  PENDING
 }
 
 enum NotifChannel {

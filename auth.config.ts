@@ -10,12 +10,16 @@ export const authConfig = {
   providers: [], // providers added in lib/auth.ts
   pages: { signIn: "/login" },
   callbacks: {
-    jwt({ token, user }) {
+    jwt({ token, user, trigger, session }) {
       if (user) {
         token.id          = user.id
         token.isAdmin     = (user as any).isAdmin
         token.roleName    = (user as any).roleName ?? null
         token.permissions = (user as any).permissions ?? {}
+      }
+      if (trigger === "update" && session) {
+        if (typeof session.name  === "string") token.name  = session.name
+        if (typeof session.email === "string") token.email = session.email
       }
       return token
     },

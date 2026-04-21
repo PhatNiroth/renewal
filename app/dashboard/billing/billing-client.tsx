@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Modal } from "@/components/ui/modal"
+import { Combobox } from "@/components/ui/combobox"
 import { recordPayment, deletePayment } from "@/app/actions/billing"
 
 type PaymentRow = {
@@ -74,12 +75,14 @@ function AddPaymentModal({
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-foreground">Subscription <span className="text-destructive">*</span></label>
-          <select name="subscriptionId" required className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
-            <option value="">Select subscription…</option>
-            {subscriptions.map(s => (
-              <option key={s.id} value={s.id}>{s.vendor.name} — {s.planName}</option>
-            ))}
-          </select>
+          <Combobox
+            name="subscriptionId"
+            required
+            options={subscriptions.map(s => ({ value: s.id, label: `${s.vendor.name} — ${s.planName}` }))}
+            placeholder="Select subscription…"
+            searchPlaceholder="Search by vendor or plan…"
+            emptyMessage="No subscriptions match."
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-4">

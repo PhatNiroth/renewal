@@ -126,6 +126,7 @@ model Subscription {
   startDate     DateTime
   renewalDate   DateTime
   status        SubscriptionStatus @default(ACTIVE)
+  autoRenew     Boolean            @default(false)
   responsibleId String?
   notes         String?
   documentPath  String?

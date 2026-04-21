@@ -6,12 +6,14 @@ import { Input } from "@/components/ui/input"
 import { RiAddLine, RiEditLine, RiDeleteBinLine, RiLoader4Line } from "@remixicon/react"
 import { cn } from "@/lib/utils"
 import { Modal } from "@/components/ui/modal"
+import { Combobox } from "@/components/ui/combobox"
 
 type Vendor = { id: string; name: string }
 type User   = { id: string; name: string | null; email: string }
 type Sub = {
   id: string; planName: string; cost: number; billingCycle: string; status: string
   startDate: string; renewalDate: string; notes: string | null
+  autoRenew: boolean
   vendor: Vendor; responsible: User | null
 }
 
@@ -30,10 +32,10 @@ function fmtDate(d: string) { return new Date(d).toLocaleDateString("en-US", { m
 function toInput(d: string) { return new Date(d).toISOString().split("T")[0] }
 
 
-type FormData = { vendorId: string; planName: string; cost: string; billingCycle: string; startDate: string; renewalDate: string; status: string; responsibleId: string; notes: string }
+type FormData = { vendorId: string; planName: string; cost: string; billingCycle: string; startDate: string; renewalDate: string; status: string; responsibleId: string; notes: string; autoRenew: boolean }
 
 function emptyForm(): FormData {
-  return { vendorId: "", planName: "", cost: "", billingCycle: "MONTHLY", startDate: "", renewalDate: "", status: "ACTIVE", responsibleId: "", notes: "" }
+  return { vendorId: "", planName: "", cost: "", billingCycle: "MONTHLY", startDate: "", renewalDate: "", status: "ACTIVE", responsibleId: "", notes: "", autoRenew: false }
 }
 
 function SubForm({ form, setForm, vendors, users }: { form: FormData; setForm: (f: FormData) => void; vendors: Vendor[]; users: User[] }) {
@@ -42,15 +44,19 @@ function SubForm({ form, setForm, vendors, users }: { form: FormData; setForm: (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5 col-span-2">
-          <label className="text-sm font-medium text-foreground">Vendor <span className="text-destructive">*</span></label>
-          <select value={form.vendorId} onChange={set("vendorId")} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30">
-            <option value="">Select vendor…</option>
-            {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-          </select>
-        </div>
-        <div className="space-y-1.5 col-span-2">
           <label className="text-sm font-medium text-foreground">Plan Name <span className="text-destructive">*</span></label>
           <Input value={form.planName} onChange={set("planName")} placeholder="e.g. Business Plan" />
+        </div>
+        <div className="space-y-1.5 col-span-2">
+          <label className="text-sm font-medium text-foreground">Vendor <span className="text-destructive">*</span></label>
+          <Combobox
+            options={vendors.map(v => ({ value: v.id, label: v.name }))}
+            value={form.vendorId}
+            onChange={id => setForm({ ...form, vendorId: id })}
+            placeholder="Select vendor…"
+            searchPlaceholder="Search vendors…"
+            emptyMessage="No vendors match."
+          />
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-foreground">Cost (USD) <span className="text-destructive">*</span></label>
@@ -82,14 +88,31 @@ function SubForm({ form, setForm, vendors, users }: { form: FormData; setForm: (
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-foreground">Responsible</label>
-          <select value={form.responsibleId} onChange={set("responsibleId")} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30">
-            <option value="">— None —</option>
-            {users.map(u => <option key={u.id} value={u.id}>{u.name ?? u.email}</option>)}
-          </select>
+          <Combobox
+            options={users.map(u => ({ value: u.id, label: u.name ?? u.email, searchText: u.email }))}
+            value={form.responsibleId}
+            onChange={id => setForm({ ...form, responsibleId: id })}
+            placeholder="— None —"
+            searchPlaceholder="Search users…"
+            emptyMessage="No users match."
+          />
         </div>
         <div className="space-y-1.5 col-span-2">
           <label className="text-sm font-medium text-foreground">Notes</label>
           <textarea value={form.notes} onChange={set("notes")} rows={2} placeholder="Optional notes…" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
+        </div>
+        <div className="col-span-2 flex items-start gap-2">
+          <input
+            id="autoRenew-admin"
+            type="checkbox"
+            checked={form.autoRenew}
+            onChange={e => setForm({ ...form, autoRenew: e.target.checked })}
+            className="mt-0.5 size-4 rounded border-border"
+          />
+          <label htmlFor="autoRenew-admin" className="text-sm text-foreground">
+            Auto-renews with vendor
+            <span className="block text-xs text-muted-foreground">Skip reminder emails — the vendor renews this automatically.</span>
+          </label>
         </div>
       </div>
     </div>
@@ -191,7 +214,12 @@ export default function AdminSubscriptionsPage() {
               ) : subs.map(s => (
                 <tr key={s.id} className="hover:bg-muted/40 transition-colors">
                   <td className="px-4 xl:px-6 py-3.5">
-                    <p className="font-medium text-foreground truncate">{s.vendor.name}</p>
+                    <p className="font-medium text-foreground truncate flex items-center gap-1.5">
+                      {s.vendor.name}
+                      {s.autoRenew && (
+                        <span className="inline-flex items-center rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400 shrink-0">Auto</span>
+                      )}
+                    </p>
                     <p className="text-xs text-muted-foreground truncate">{s.planName}</p>
                   </td>
                   <td className="px-4 xl:px-6 py-3.5">
@@ -213,6 +241,7 @@ export default function AdminSubscriptionsPage() {
                           billingCycle: s.billingCycle, startDate: toInput(s.startDate),
                           renewalDate: toInput(s.renewalDate), status: s.status,
                           responsibleId: s.responsible?.id ?? "", notes: s.notes ?? "",
+                          autoRenew: s.autoRenew,
                         })
                         setError(null)
                       }}>
@@ -239,7 +268,12 @@ export default function AdminSubscriptionsPage() {
             <div key={s.id} className="px-4 py-4 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="font-medium text-foreground truncate">{s.vendor.name}</div>
+                  <div className="font-medium text-foreground truncate flex items-center gap-1.5">
+                    {s.vendor.name}
+                    {s.autoRenew && (
+                      <span className="inline-flex items-center rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400 shrink-0">Auto</span>
+                    )}
+                  </div>
                   <div className="text-xs text-muted-foreground truncate">{s.planName}</div>
                 </div>
                 <span className={cn("inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium shrink-0", STATUS_COLORS[s.status])}>
@@ -275,6 +309,7 @@ export default function AdminSubscriptionsPage() {
                     billingCycle: s.billingCycle, startDate: toInput(s.startDate),
                     renewalDate: toInput(s.renewalDate), status: s.status,
                     responsibleId: s.responsible?.id ?? "", notes: s.notes ?? "",
+                    autoRenew: s.autoRenew,
                   })
                   setError(null)
                 }} className="flex-1">

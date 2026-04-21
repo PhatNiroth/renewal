@@ -132,7 +132,14 @@ export default async function RenewalsPage() {
 
                 return (
                   <tr key={sub.id} className="hover:bg-muted/40 transition-colors">
-                    <td className="px-4 xl:px-6 py-3.5 font-medium text-foreground truncate">{sub.vendor.name}</td>
+                    <td className="px-4 xl:px-6 py-3.5 font-medium text-foreground truncate">
+                      <span className="inline-flex items-center gap-1.5">
+                        {sub.vendor.name}
+                        {sub.autoRenew && (
+                          <span className="inline-flex items-center rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">Auto</span>
+                        )}
+                      </span>
+                    </td>
                     <td className="px-4 xl:px-6 py-3.5 text-muted-foreground truncate">{sub.planName}</td>
                     <td className="px-4 xl:px-6 py-3.5 font-medium text-foreground">{fmt(sub.cost)}</td>
                     <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground">{cycleLabel[sub.billingCycle] ?? sub.billingCycle}</td>
@@ -194,7 +201,12 @@ export default async function RenewalsPage() {
               <div key={sub.id} className="px-4 py-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="font-medium text-foreground truncate">{sub.vendor.name}</div>
+                    <div className="font-medium text-foreground truncate flex items-center gap-1.5">
+                      {sub.vendor.name}
+                      {sub.autoRenew && (
+                        <span className="inline-flex items-center rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400 shrink-0">Auto</span>
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground truncate">{sub.planName}</div>
                   </div>
                   <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium shrink-0 ${urgencyClass}`}>

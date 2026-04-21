@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Modal } from "@/components/ui/modal"
+import { Combobox } from "@/components/ui/combobox"
 import { createSubscription, updateSubscription, deleteSubscription } from "@/app/actions/subscriptions"
 import { toast } from "react-hot-toast"
 import type { Subscription, Vendor, User } from "@prisma/client"
@@ -106,16 +107,20 @@ function AddSubscriptionModal({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2 space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Vendor <span className="text-destructive">*</span></label>
-            <select name="vendorId" required className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
-              <option value="">Select vendor…</option>
-              {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-            </select>
+            <label className="text-sm font-medium text-foreground">Plan / Service Name <span className="text-destructive">*</span></label>
+            <Input name="planName" placeholder="e.g. Pro, Business, Enterprise" required />
           </div>
 
           <div className="col-span-2 space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Plan / Service Name <span className="text-destructive">*</span></label>
-            <Input name="planName" placeholder="e.g. Pro, Business, Enterprise" required />
+            <label className="text-sm font-medium text-foreground">Vendor <span className="text-destructive">*</span></label>
+            <Combobox
+              name="vendorId"
+              required
+              options={vendors.map(v => ({ value: v.id, label: v.name }))}
+              placeholder="Select vendor…"
+              searchPlaceholder="Search vendors…"
+              emptyMessage="No vendors match."
+            />
           </div>
 
           <div className="col-span-2 space-y-1.5">
@@ -158,10 +163,13 @@ function AddSubscriptionModal({
 
           <div className="col-span-2 space-y-1.5">
             <label className="text-sm font-medium text-foreground">Responsible Person</label>
-            <select name="responsibleId" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
-              <option value="">Unassigned</option>
-              {users.map(u => <option key={u.id} value={u.id}>{u.name || u.email}</option>)}
-            </select>
+            <Combobox
+              name="responsibleId"
+              options={users.map(u => ({ value: u.id, label: u.name || u.email, searchText: u.email }))}
+              placeholder="Unassigned"
+              searchPlaceholder="Search users…"
+              emptyMessage="No users match."
+            />
           </div>
 
           <div className="col-span-2 space-y-1.5">
@@ -173,6 +181,14 @@ function AddSubscriptionModal({
           <div className="col-span-2 space-y-1.5">
             <label className="text-sm font-medium text-foreground">Notes</label>
             <textarea name="notes" rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none" placeholder="Optional notes…" />
+          </div>
+
+          <div className="col-span-2 flex items-start gap-2">
+            <input id="autoRenew-create" name="autoRenew" type="checkbox" className="mt-0.5 size-4 rounded border-border" />
+            <label htmlFor="autoRenew-create" className="text-sm text-foreground">
+              Auto-renews with vendor
+              <span className="block text-xs text-muted-foreground">Skip reminder emails — the vendor renews this automatically.</span>
+            </label>
           </div>
         </div>
 
@@ -224,6 +240,7 @@ function EditSubscriptionModal({
         responsibleId: (fd.get("responsibleId") as string) || null,
         notes:         (fd.get("notes") as string) || null,
         documentPath:  (fd.get("documentPath") as string) || null,
+        autoRenew:     fd.get("autoRenew") === "on",
       })
       if ("error" in result) { setError(result.error); toast.error("Failed to save changes") }
       else { toast.success("Changes saved"); onSuccess(); onClose() }
@@ -237,13 +254,13 @@ function EditSubscriptionModal({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2 space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Vendor</label>
-            <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">{sub.vendor.name}</div>
+            <label className="text-sm font-medium text-foreground">Plan / Service Name <span className="text-destructive">*</span></label>
+            <Input name="planName" defaultValue={sub.planName} required />
           </div>
 
           <div className="col-span-2 space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Plan / Service Name <span className="text-destructive">*</span></label>
-            <Input name="planName" defaultValue={sub.planName} required />
+            <label className="text-sm font-medium text-foreground">Vendor</label>
+            <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">{sub.vendor.name}</div>
           </div>
 
           <div className="col-span-2 space-y-1.5">
@@ -288,10 +305,14 @@ function EditSubscriptionModal({
 
           <div className="col-span-2 space-y-1.5">
             <label className="text-sm font-medium text-foreground">Responsible Person</label>
-            <select name="responsibleId" defaultValue={sub.responsible?.id ?? ""} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
-              <option value="">Unassigned</option>
-              {users.map(u => <option key={u.id} value={u.id}>{u.name || u.email}</option>)}
-            </select>
+            <Combobox
+              name="responsibleId"
+              defaultValue={sub.responsible?.id ?? ""}
+              options={users.map(u => ({ value: u.id, label: u.name || u.email, searchText: u.email }))}
+              placeholder="Unassigned"
+              searchPlaceholder="Search users…"
+              emptyMessage="No users match."
+            />
           </div>
 
           <div className="col-span-2 space-y-1.5">
@@ -303,6 +324,14 @@ function EditSubscriptionModal({
           <div className="col-span-2 space-y-1.5">
             <label className="text-sm font-medium text-foreground">Notes</label>
             <textarea name="notes" rows={2} defaultValue={sub.notes ?? ""} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none" placeholder="Optional notes…" />
+          </div>
+
+          <div className="col-span-2 flex items-start gap-2">
+            <input id="autoRenew-edit" name="autoRenew" type="checkbox" defaultChecked={sub.autoRenew} className="mt-0.5 size-4 rounded border-border" />
+            <label htmlFor="autoRenew-edit" className="text-sm text-foreground">
+              Auto-renews with vendor
+              <span className="block text-xs text-muted-foreground">Skip reminder emails — the vendor renews this automatically.</span>
+            </label>
           </div>
         </div>
 
@@ -336,7 +365,7 @@ export default function SubscriptionsClient({
   const [search, setSearch]               = useState("")
   const [statusFilter, setStatusFilter]   = useState("ALL")
   const [deptFilter, setDeptFilter]       = useState("ALL")
-  const [sortKey, setSortKey]             = useState<"vendor" | "cost" | "renewal" | "cycle">("renewal")
+  const [sortKey, setSortKey]             = useState<"vendor" | "cost" | "renewal">("renewal")
   const [sortDir, setSortDir]           = useState<"asc" | "desc">("asc")
   const [showModal, setShowModal]       = useState(false)
   const [editing, setEditing]           = useState<SubscriptionFull | null>(null)
@@ -366,7 +395,6 @@ export default function SubscriptionsClient({
       if (sortKey === "vendor")  cmp = a.vendor.name.localeCompare(b.vendor.name)
       if (sortKey === "cost")    cmp = a.cost - b.cost
       if (sortKey === "renewal") cmp = new Date(a.renewalDate).getTime() - new Date(b.renewalDate).getTime()
-      if (sortKey === "cycle")   cmp = a.billingCycle.localeCompare(b.billingCycle)
       return sortDir === "asc" ? cmp : -cmp
     })
 
@@ -493,31 +521,30 @@ export default function SubscriptionsClient({
             <table className="w-full text-sm table-fixed">
               <thead>
                 <tr className="border-b border-border">
+                  <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Plan</th>
                   <th className="cursor-pointer select-none px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("vendor")}>
                     Vendor {sortIcon("vendor")}
                   </th>
-                  <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Plan</th>
                   <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Department</th>
                   <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Status</th>
-                  <th className="cursor-pointer select-none px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("cost")}>
-                    Cost {sortIcon("cost")}
-                  </th>
-                  <th className="hidden xl:table-cell cursor-pointer select-none px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("cycle")}>
-                    Cycle {sortIcon("cycle")}
-                  </th>
                   <th className="cursor-pointer select-none px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("renewal")}>
                     Renewal {sortIcon("renewal")}
                   </th>
-                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Responsible</th>
-                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Document</th>
                   <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Notes</th>
+                  <th
+                    className="cursor-pointer select-none px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => toggleSort("cost")}
+                    title="Click to sort by cost"
+                  >
+                    Details {sortIcon("cost")}
+                  </th>
                   {canEdit && <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Action</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={canEdit ? 11 : 10} className="px-6 py-16 text-center text-sm text-muted-foreground">
+                    <td colSpan={canEdit ? 8 : 7} className="px-6 py-16 text-center text-sm text-muted-foreground">
                       {subscriptions.length === 0
                         ? "No subscriptions yet. Click \"New Subscription\" to create one."
                         : "No subscriptions match your search."}
@@ -531,8 +558,15 @@ export default function SubscriptionsClient({
 
                   return (
                     <tr key={sub.id} className="hover:bg-muted/40 transition-colors">
-                      <td className="px-4 xl:px-6 py-3.5 font-medium text-foreground truncate">{sub.vendor.name}</td>
-                      <td className="px-4 xl:px-6 py-3.5 text-muted-foreground truncate">{sub.planName}</td>
+                      <td className="px-4 xl:px-6 py-3.5 font-medium text-foreground truncate">{sub.planName}</td>
+                      <td className="px-4 xl:px-6 py-3.5 text-muted-foreground truncate">
+                        <span className="inline-flex items-center gap-1.5">
+                          {sub.vendor.name}
+                          {sub.autoRenew && (
+                            <span className="inline-flex items-center rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">Auto</span>
+                          )}
+                        </span>
+                      </td>
                       <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground truncate">{deptLabel((sub as any).department) ?? <span className="text-muted-foreground/40">—</span>}</td>
                       <td className="px-4 xl:px-6 py-3.5">
                         <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${status?.className}`}>
@@ -540,8 +574,6 @@ export default function SubscriptionsClient({
                           {status?.label}
                         </span>
                       </td>
-                      <td className="px-4 xl:px-6 py-3.5 font-medium text-foreground">{fmt(sub.cost)}</td>
-                      <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground">{cycleLabel[sub.billingCycle] ?? sub.billingCycle}</td>
                       <td className="px-4 xl:px-6 py-3.5">
                         <span className={isUrgent ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}>
                           {fmtDate(sub.renewalDate)}
@@ -552,20 +584,41 @@ export default function SubscriptionsClient({
                           </span>
                         )}
                       </td>
-                      <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground truncate">
-                        {sub.responsible?.name ?? sub.responsible?.email ?? <span className="text-muted-foreground/50">—</span>}
-                      </td>
-                      <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5">
-                        {sub.documentPath ? (
-                          sub.documentPath.startsWith("http")
-                            ? <a href={sub.documentPath} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline text-xs"><RiLink className="size-3.5" />View</a>
-                            : <span className="text-xs text-muted-foreground font-mono">{sub.documentPath}</span>
-                        ) : <span className="text-muted-foreground/50">—</span>}
-                      </td>
                       <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground">
                         {sub.notes ? (
                           <span className="block max-w-60 truncate text-xs" title={sub.notes}>{sub.notes}</span>
                         ) : <span className="text-muted-foreground/50">—</span>}
+                      </td>
+                      <td className="px-4 xl:px-6 py-3.5 text-xs">
+                        <div className="space-y-1">
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="inline-flex w-12 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">Cost</span>
+                            <span className="font-medium text-foreground">{fmt(sub.cost)}</span>
+                          </div>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="inline-flex w-12 shrink-0 items-center justify-center rounded-md bg-indigo-500/10 px-1.5 py-0.5 text-[10px] font-medium text-indigo-600 dark:text-indigo-400">Cycle</span>
+                            <span className="text-foreground">
+                              {cycleLabel[sub.billingCycle] ?? sub.billingCycle}
+                              {sub.billingCycle === "CUSTOM" && sub.customDays ? ` (${sub.customDays}d)` : ""}
+                            </span>
+                          </div>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="inline-flex w-12 shrink-0 items-center justify-center rounded-md bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-600 dark:text-violet-400">Resp</span>
+                            <span className="text-foreground truncate">
+                              {sub.responsible?.name ?? sub.responsible?.email ?? <span className="text-muted-foreground/50">—</span>}
+                            </span>
+                          </div>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="inline-flex w-12 shrink-0 items-center justify-center rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">Doc</span>
+                            <span className="truncate">
+                              {sub.documentPath ? (
+                                sub.documentPath.startsWith("http")
+                                  ? <a href={sub.documentPath} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline"><RiLink className="size-3" />View</a>
+                                  : <span className="text-foreground font-mono">{sub.documentPath}</span>
+                              ) : <span className="text-muted-foreground/50">—</span>}
+                            </span>
+                          </div>
+                        </div>
                       </td>
                       {canEdit && (
                         <td className="px-4 xl:px-6 py-3.5">
@@ -604,7 +657,12 @@ export default function SubscriptionsClient({
                 <div key={sub.id} className="px-4 py-4 space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="font-medium text-foreground truncate">{sub.vendor.name}</div>
+                      <div className="font-medium text-foreground truncate flex items-center gap-1.5">
+                        {sub.vendor.name}
+                        {sub.autoRenew && (
+                          <span className="inline-flex items-center rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400 shrink-0">Auto</span>
+                        )}
+                      </div>
                       <div className="text-xs text-muted-foreground truncate">{sub.planName}</div>
                     </div>
                     <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium shrink-0 ${status?.className}`}>

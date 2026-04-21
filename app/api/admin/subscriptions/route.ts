@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   if (error) return error
 
   const body = await req.json()
-  const { vendorId, planName, cost, billingCycle, startDate, renewalDate, status, responsibleId, notes } = body
+  const { vendorId, planName, cost, billingCycle, startDate, renewalDate, status, responsibleId, notes, autoRenew } = body
 
   if (!vendorId || !planName || cost === undefined || !startDate || !renewalDate) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
@@ -36,6 +36,7 @@ export async function POST(req: Request) {
       status:        status as SubscriptionStatus ?? SubscriptionStatus.ACTIVE,
       responsibleId: responsibleId || null,
       notes:         notes?.trim() || null,
+      autoRenew:     Boolean(autoRenew),
     },
     include: { vendor: true, responsible: true },
   })

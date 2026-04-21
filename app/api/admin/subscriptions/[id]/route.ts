@@ -22,6 +22,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       status:        body.status        as SubscriptionStatus ?? undefined,
       responsibleId: body.responsibleId !== undefined ? (body.responsibleId || null) : undefined,
       notes:         body.notes         !== undefined ? (body.notes?.trim() || null) : undefined,
+      autoRenew:     body.autoRenew     !== undefined ? Boolean(body.autoRenew) : undefined,
     },
     include: { vendor: true, responsible: true },
   })

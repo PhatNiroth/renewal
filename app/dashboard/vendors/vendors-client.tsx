@@ -7,6 +7,7 @@ import { RiAddLine, RiEditLine, RiDeleteBinLine, RiLoader4Line, RiCheckLine } fr
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Modal } from "@/components/ui/modal"
+import { Combobox } from "@/components/ui/combobox"
 import { createVendor, updateVendor } from "@/app/actions/vendors"
 
 type CategoryInfo = { id: string; name: string; slug: string; color: string }
@@ -49,10 +50,14 @@ function VendorFields({ categories, defaults }: { categories: CategoryInfo[]; de
       </div>
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-foreground">Category</label>
-        <select name="categoryId" defaultValue={defaults?.category?.id ?? ""} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
-          <option value="">— None —</option>
-          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+        <Combobox
+          name="categoryId"
+          defaultValue={defaults?.category?.id ?? ""}
+          options={categories.map(c => ({ value: c.id, label: c.name }))}
+          placeholder="— None —"
+          searchPlaceholder="Search categories…"
+          emptyMessage="No categories match."
+        />
       </div>
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-foreground">Website</label>
@@ -241,13 +246,14 @@ export default function VendorsClient({
                   <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Contact</th>
                   <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Payment Method</th>
                   <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Subs.</th>
+                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Notes</th>
                   {(canEdit || canDelete) && <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Action</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {vendors.length === 0 ? (
                   <tr>
-                    <td colSpan={canEdit || canDelete ? 6 : 5} className="py-12 text-center text-sm text-muted-foreground">
+                    <td colSpan={canEdit || canDelete ? 8 : 7} className="py-12 text-center text-sm text-muted-foreground">
                       No vendors yet.{canAdd ? " Click \"New Vendor\" to add one." : ""}
                     </td>
                   </tr>
@@ -285,6 +291,11 @@ export default function VendorsClient({
                     </td>
                     <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground truncate">{v.paymentMethod ?? <span className="opacity-40">—</span>}</td>
                     <td className="px-4 xl:px-6 py-3.5 text-muted-foreground">{v._count.subscriptions}</td>
+                    <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground">
+                      {v.notes ? (
+                        <span className="block max-w-60 truncate text-xs" title={v.notes}>{v.notes}</span>
+                      ) : <span className="text-muted-foreground/50">—</span>}
+                    </td>
                     {(canEdit || canDelete) && (
                       <td className="px-4 xl:px-6 py-3.5">
                         <div className="flex items-center justify-end gap-2">

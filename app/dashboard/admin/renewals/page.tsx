@@ -11,7 +11,7 @@ type Vendor = { id: string; name: string }
 type User   = { id: string; name: string | null; email: string }
 type Sub = {
   id: string; planName: string; cost: number; billingCycle: string; status: string
-  renewalDate: string; vendor: Vendor; responsible: User | null
+  renewalDate: string; autoRenew: boolean; vendor: Vendor; responsible: User | null
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -83,7 +83,12 @@ export default function AdminRenewalsPage() {
     return (
       <tr className="hover:bg-muted/40 transition-colors">
         <td className="px-4 xl:px-6 py-3.5">
-          <p className="font-medium text-foreground truncate">{s.vendor.name}</p>
+          <p className="font-medium text-foreground truncate flex items-center gap-1.5">
+            {s.vendor.name}
+            {s.autoRenew && (
+              <span className="inline-flex items-center rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400 shrink-0">Auto</span>
+            )}
+          </p>
           <p className="text-xs text-muted-foreground truncate">{s.planName}</p>
         </td>
         <td className="px-4 xl:px-6 py-3.5">
@@ -120,7 +125,12 @@ export default function AdminRenewalsPage() {
       <div className="px-4 py-4 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="font-medium text-foreground truncate">{s.vendor.name}</div>
+            <div className="font-medium text-foreground truncate flex items-center gap-1.5">
+              {s.vendor.name}
+              {s.autoRenew && (
+                <span className="inline-flex items-center rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400 shrink-0">Auto</span>
+              )}
+            </div>
             <div className="text-xs text-muted-foreground truncate">{s.planName}</div>
           </div>
           <span className={cn("inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium shrink-0", STATUS_COLORS[s.status])}>

@@ -5,6 +5,7 @@ vi.mock("@/lib/db", () => ({
   db: {
     subscription: {
       updateMany: vi.fn(),
+      update:     vi.fn(),
       findMany:   vi.fn().mockResolvedValue([]),
     },
     user: {
@@ -77,6 +78,8 @@ describe("runNotificationDispatcher()", () => {
 
   it("skips subscriptions that already have a sent notification log", async () => {
     vi.mocked(mockDb.user.findMany).mockResolvedValue([])
+    // First findMany call is autoRenewing query — return empty so it's a no-op
+    vi.mocked(mockDb.subscription.findMany).mockResolvedValueOnce([])
     vi.mocked(mockDb.subscription.findMany).mockResolvedValue([
       {
         id: "sub-1",
@@ -92,5 +95,50 @@ describe("runNotificationDispatcher()", () => {
     const result = await runNotificationDispatcher()
     expect(result.skipped).toBeGreaterThan(0)
     expect(result.sent).toBe(0)
+  })
+
+  it("auto-advances renewalDate for autoRenew=true subs instead of expiring", async () => {
+    const pastDate = new Date()
+    pastDate.setDate(pastDate.getDate() - 5)
+
+    vi.mocked(mockDb.subscription.findMany).mockResolvedValueOnce([
+      {
+        id: "sub-auto",
+        autoRenew: true,
+        billingCycle: "MONTHLY",
+        customDays: null,
+        renewalDate: pastDate,
+        status: "ACTIVE",
+      },
+    ] as any)
+    vi.mocked(mockDb.user.findMany).mockResolvedValue([])
+
+    await runNotificationDispatcher()
+
+    expect(mockDb.subscription.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "sub-auto" },
+        data: expect.objectContaining({ status: "ACTIVE" }),
+      })
+    )
+    const call = vi.mocked(mockDb.subscription.update).mock.calls[0][0]
+    const newDate = call.data.renewalDate as Date
+    expect(newDate.getTime()).toBeGreaterThan(Date.now())
+  })
+
+  it("skips autoRenew=true subs from reminder emails", async () => {
+    // autoRenewing call returns empty (no past-due)
+    vi.mocked(mockDb.subscription.findMany).mockResolvedValueOnce([])
+    // Reminder queries return empty because autoRenew:false filter excludes them
+    vi.mocked(mockDb.subscription.findMany).mockResolvedValue([])
+
+    await runNotificationDispatcher()
+
+    const reminderCall = vi.mocked(mockDb.subscription.findMany).mock.calls[1]?.[0]
+    expect(reminderCall).toEqual(
+      expect.objectContaining({
+        where: expect.objectContaining({ autoRenew: false }),
+      })
+    )
   })
 })

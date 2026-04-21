@@ -1,7 +1,8 @@
 import { db } from "./db"
 import { sendEmail } from "./email"
 import { sendTelegramMessage } from "./telegram"
-import { NotifType, SubscriptionStatus } from "@prisma/client"
+import { nextRenewalDate } from "./renewal-utils"
+import { BillingCycle, NotifType, SubscriptionStatus } from "@prisma/client"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -63,25 +64,48 @@ export async function syncSubscriptionStatuses(): Promise<void> {
   const now = new Date()
   const in7days = addDays(now, 7)
 
-  // Mark EXPIRED — renewalDate is in the past and still ACTIVE or EXPIRING_SOON
+  // Auto-renewing subs with past renewalDate — advance the date instead of flipping to EXPIRED.
+  // Loops until the new date is in the future (handles multi-cycle gaps if cron missed runs).
+  const autoRenewing = await db.subscription.findMany({
+    where: {
+      autoRenew: true,
+      renewalDate: { lt: now },
+      status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.EXPIRING_SOON] },
+      billingCycle: { not: BillingCycle.ONE_TIME },
+    },
+  })
+  for (const sub of autoRenewing) {
+    let newDate = sub.renewalDate
+    while (newDate.getTime() < now.getTime()) {
+      newDate = nextRenewalDate(newDate, sub.billingCycle, sub.customDays)
+    }
+    await db.subscription.update({
+      where: { id: sub.id },
+      data:  { renewalDate: newDate, status: SubscriptionStatus.ACTIVE },
+    })
+  }
+
+  // Mark EXPIRED — manual subs with past renewalDate (autoRenew handled above)
   await db.subscription.updateMany({
     where: {
+      autoRenew: false,
       renewalDate: { lt: now },
       status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.EXPIRING_SOON] },
     },
     data: { status: SubscriptionStatus.EXPIRED },
   })
 
-  // Mark EXPIRING_SOON — renewalDate within 7 days and still ACTIVE
+  // Mark EXPIRING_SOON — manual subs within 7 days; auto-renew stays ACTIVE
   await db.subscription.updateMany({
     where: {
+      autoRenew: false,
       renewalDate: { gte: now, lte: in7days },
       status: SubscriptionStatus.ACTIVE,
     },
     data: { status: SubscriptionStatus.EXPIRING_SOON },
   })
 
-  console.log("[status-sync] Subscription statuses updated")
+  console.log(`[status-sync] Subscription statuses updated (auto-advanced: ${autoRenewing.length})`)
 }
 
 export async function runNotificationDispatcher(): Promise<DispatchResult> {
@@ -104,6 +128,7 @@ export async function runNotificationDispatcher(): Promise<DispatchResult> {
       where: {
         renewalDate: { gte: from, lte: to },
         status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.EXPIRING_SOON] },
+        autoRenew: false,
       },
       include: {
         vendor:      { include: { category: true } },

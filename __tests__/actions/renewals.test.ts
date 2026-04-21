@@ -208,7 +208,7 @@ describe("markAsRenewed() — renewal log", () => {
   })
 
   it("logs the correct new date for MONTHLY", async () => {
-    const previousDate = new Date("2026-04-01")
+    const previousDate = new Date("2027-04-01")
     mockAuth.mockResolvedValueOnce(adminSession())
     vi.mocked(mockDb.subscription.findUnique).mockResolvedValueOnce({
       id: "sub-1", billingCycle: "MONTHLY", customDays: null,
@@ -259,10 +259,10 @@ describe("markAsRenewed() — all billing cycles", () => {
   beforeEach(() => vi.clearAllMocks())
 
   const cases = [
-    { cycle: "MONTHLY",   customDays: null, renewalDate: "2026-03-09", expectedMonth: 3 },
-    { cycle: "QUARTERLY", customDays: null, renewalDate: "2026-03-09", expectedMonth: 5 },
-    { cycle: "YEARLY",    customDays: null, renewalDate: "2026-03-09", expectedYear: 2027 },
-    { cycle: "CUSTOM",    customDays: 60,   renewalDate: "2026-03-09", expectedDaysAdded: 60 },
+    { cycle: "MONTHLY",   customDays: null, renewalDate: "2027-03-09", expectedMonth: 3 },
+    { cycle: "QUARTERLY", customDays: null, renewalDate: "2027-03-09", expectedMonth: 5 },
+    { cycle: "YEARLY",    customDays: null, renewalDate: "2027-03-09", expectedYear: 2028 },
+    { cycle: "CUSTOM",    customDays: 60,   renewalDate: "2027-03-09", expectedDaysAdded: 60 },
   ]
 
   for (const c of cases) {

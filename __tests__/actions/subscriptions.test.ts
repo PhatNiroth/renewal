@@ -193,14 +193,14 @@ describe("markAsRenewed", () => {
     mockAuth.mockResolvedValueOnce(adminSession())
     vi.mocked(mockDb.subscription.findUnique).mockResolvedValueOnce({
       id: "sub-1", billingCycle: "CUSTOM", customDays: 90,
-      renewalDate: new Date("2026-04-09"),
+      renewalDate: new Date("2027-04-09"),
     } as any)
     vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
 
     await markAsRenewed("sub-1")
     const updateCall = vi.mocked(mockDb.subscription.update).mock.calls[0][0]
     const newDate = updateCall.data.renewalDate as Date
-    const expected = new Date("2026-04-09")
+    const expected = new Date("2027-04-09")
     expected.setDate(expected.getDate() + 90)
     expect(newDate.toDateString()).toBe(expected.toDateString())
   })

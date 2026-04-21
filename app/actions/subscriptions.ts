@@ -32,6 +32,7 @@ export async function createSubscription(formData: FormData): Promise<ActionResu
   const responsibleId = formData.get("responsibleId") as string | null
   const notes         = formData.get("notes") as string | null
   const documentPath  = formData.get("documentPath") as string | null
+  const autoRenew     = formData.get("autoRenew") === "on" || formData.get("autoRenew") === "true"
 
   if (!vendorId)    return { error: "Vendor is required" }
   if (!planName)    return { error: "Plan / service name is required" }
@@ -58,6 +59,7 @@ export async function createSubscription(formData: FormData): Promise<ActionResu
         responsibleId: responsibleId || null,
         notes:         notes || null,
         documentPath:  documentPath || null,
+        autoRenew,
       },
     })
     revalidatePath("/dashboard/subscriptions")
@@ -82,6 +84,7 @@ export async function updateSubscription(
     responsibleId: string | null
     notes: string | null
     documentPath: string | null
+    autoRenew: boolean
   }>
 ): Promise<ActionResult> {
   const session = await auth()

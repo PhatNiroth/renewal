@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { RiAddLine, RiEditLine, RiDeleteBinLine, RiLoader4Line, RiCloseLine } from "@remixicon/react"
 import { Modal } from "@/components/ui/modal"
+import { Combobox } from "@/components/ui/combobox"
 
 type CategoryInfo = { id: string; name: string; slug: string; color: string }
 type Vendor = {
@@ -79,10 +80,15 @@ function VendorForm({
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-foreground">Category</label>
         <div className="flex gap-2">
-          <select value={form.categoryId} onChange={set("categoryId")} className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30">
-            <option value="">— None —</option>
-            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          <Combobox
+            className="flex-1"
+            value={form.categoryId}
+            onChange={v => setForm({ ...form, categoryId: v })}
+            options={categories.map(c => ({ value: c.id, label: c.name }))}
+            placeholder="— None —"
+            searchPlaceholder="Search categories…"
+            emptyMessage="No categories match."
+          />
           <Button type="button" variant="outline" size="icon-sm" title="Create new category" onClick={() => { setShowNew(v => !v); setCatError(null) }}>
             {showNew ? <RiCloseLine className="size-4" /> : <RiAddLine className="size-4" />}
           </Button>

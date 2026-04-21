@@ -146,34 +146,34 @@ export function RenewalHistoryClient({
         </div>
       ) : (
         <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="hidden md:block">
+            <table className="w-full text-sm table-fixed">
               <thead>
                 <tr className="border-b border-border bg-muted/40">
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Vendor</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Subscription</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Previous Date</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">New Date</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Renewed By</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Renewed At</th>
+                  <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Vendor</th>
+                  <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Subscription</th>
+                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Previous Date</th>
+                  <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">New Date</th>
+                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Renewed By</th>
+                  <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Renewed At</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {filtered.map(log => (
                   <tr key={log.id} className="hover:bg-muted/40 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
+                    <td className="px-4 xl:px-6 py-3">
+                      <div className="flex items-center gap-2 min-w-0">
                         <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">
                           {log.subscription.vendor.name.slice(0, 2).toUpperCase()}
                         </div>
-                        <span className="font-medium text-foreground">{log.subscription.vendor.name}</span>
+                        <span className="font-medium text-foreground truncate">{log.subscription.vendor.name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-foreground">{log.subscription.planName}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{fmtDate(log.previousDate)}</td>
-                    <td className="px-4 py-3 text-foreground">{fmtDate(log.newDate)}</td>
-                    <td className="px-4 py-3 text-foreground">{log.renewedBy.name || log.renewedBy.email}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{fmtDate(log.createdAt)}</td>
+                    <td className="px-4 xl:px-6 py-3 text-foreground truncate">{log.subscription.planName}</td>
+                    <td className="hidden xl:table-cell px-4 xl:px-6 py-3 text-muted-foreground">{fmtDate(log.previousDate)}</td>
+                    <td className="px-4 xl:px-6 py-3 text-foreground">{fmtDate(log.newDate)}</td>
+                    <td className="hidden xl:table-cell px-4 xl:px-6 py-3 text-foreground truncate">{log.renewedBy.name || log.renewedBy.email}</td>
+                    <td className="px-4 xl:px-6 py-3 text-muted-foreground">{fmtDate(log.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>

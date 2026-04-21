@@ -231,17 +231,17 @@ export default function VendorsClient({
 
         {/* Table */}
         <div className="rounded-xl border border-border bg-card">
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="hidden md:block">
+            <table className="w-full text-sm table-fixed">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Name</th>
-                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Category</th>
-                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Website</th>
-                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Contact</th>
-                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Payment Method</th>
-                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Subs.</th>
-                  {(canEdit || canDelete) && <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>}
+                  <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Name</th>
+                  <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Category</th>
+                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Website</th>
+                  <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Contact</th>
+                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Payment Method</th>
+                  <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Subs.</th>
+                  {(canEdit || canDelete) && <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Action</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -253,15 +253,15 @@ export default function VendorsClient({
                   </tr>
                 ) : vendors.map(v => (
                   <tr key={v.id} className="hover:bg-muted/40 transition-colors">
-                    <td className="px-6 py-3.5">
-                      <div className="flex items-center gap-2.5">
+                    <td className="px-4 xl:px-6 py-3.5">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-bold">
                           {v.name.slice(0, 2).toUpperCase()}
                         </div>
-                        <p className="font-medium text-foreground">{v.name}</p>
+                        <p className="font-medium text-foreground truncate">{v.name}</p>
                       </div>
                     </td>
-                    <td className="px-6 py-3.5">
+                    <td className="px-4 xl:px-6 py-3.5">
                       {v.category ? (
                         <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${colorClass(v.category.color)}`}>
                           {v.category.name}
@@ -270,23 +270,23 @@ export default function VendorsClient({
                         <span className="text-muted-foreground/40">—</span>
                       )}
                     </td>
-                    <td className="px-6 py-3.5">
+                    <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5">
                       {v.website ? (
                         <a href={v.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs truncate max-w-40 block">
                           {v.website.replace(/^https?:\/\//, "")}
                         </a>
                       ) : <span className="text-muted-foreground/40">—</span>}
                     </td>
-                    <td className="px-6 py-3.5 text-muted-foreground">
-                      {v.contactName && <p className="text-xs">{v.contactName}</p>}
-                      {v.contactEmail && <p className="text-xs">{v.contactEmail}</p>}
-                      {v.contactPhone && <p className="text-xs">{v.contactPhone}</p>}
+                    <td className="px-4 xl:px-6 py-3.5 text-muted-foreground">
+                      {v.contactName && <p className="text-xs truncate">{v.contactName}</p>}
+                      {v.contactEmail && <p className="text-xs truncate">{v.contactEmail}</p>}
+                      {v.contactPhone && <p className="text-xs truncate">{v.contactPhone}</p>}
                       {!v.contactName && !v.contactEmail && !v.contactPhone && <span className="opacity-40">—</span>}
                     </td>
-                    <td className="px-6 py-3.5 text-muted-foreground">{v.paymentMethod ?? <span className="opacity-40">—</span>}</td>
-                    <td className="px-6 py-3.5 text-muted-foreground">{v._count.subscriptions}</td>
+                    <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground truncate">{v.paymentMethod ?? <span className="opacity-40">—</span>}</td>
+                    <td className="px-4 xl:px-6 py-3.5 text-muted-foreground">{v._count.subscriptions}</td>
                     {(canEdit || canDelete) && (
-                      <td className="px-6 py-3.5">
+                      <td className="px-4 xl:px-6 py-3.5">
                         <div className="flex items-center justify-end gap-2">
                           {canEdit && (
                             <Button variant="outline" size="icon-sm" onClick={() => setEditing(v)}>

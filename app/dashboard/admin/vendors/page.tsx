@@ -215,15 +215,15 @@ export default function AdminVendorsPage() {
       </div>
 
       <div className="rounded-xl border border-border bg-card">
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="hidden md:block">
+          <table className="w-full text-sm table-fixed">
             <thead>
               <tr className="border-b border-border">
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Name</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Category</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Contact</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Subs.</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Name</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Category</th>
+                <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Contact</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Subs.</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -233,11 +233,11 @@ export default function AdminVendorsPage() {
                 <tr><td colSpan={5} className="py-12 text-center text-sm text-muted-foreground">No vendors yet.</td></tr>
               ) : vendors.map(v => (
                 <tr key={v.id} className="hover:bg-muted/40 transition-colors">
-                  <td className="px-6 py-3.5">
-                    <p className="font-medium text-foreground">{v.name}</p>
-                    {v.website && <a href={v.website} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">{v.website}</a>}
+                  <td className="px-4 xl:px-6 py-3.5">
+                    <p className="font-medium text-foreground truncate">{v.name}</p>
+                    {v.website && <a href={v.website} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate block">{v.website}</a>}
                   </td>
-                  <td className="px-6 py-3.5">
+                  <td className="px-4 xl:px-6 py-3.5">
                     {v.category ? (
                       <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${colorClass(v.category.color)}`}>
                         {v.category.name}
@@ -246,14 +246,14 @@ export default function AdminVendorsPage() {
                       <span className="text-muted-foreground opacity-40">—</span>
                     )}
                   </td>
-                  <td className="px-6 py-3.5 text-muted-foreground">
-                    {v.contactName && <p className="text-xs">{v.contactName}</p>}
-                    {v.contactEmail && <p className="text-xs">{v.contactEmail}</p>}
-                    {v.contactPhone && <p className="text-xs">{v.contactPhone}</p>}
+                  <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground">
+                    {v.contactName && <p className="text-xs truncate">{v.contactName}</p>}
+                    {v.contactEmail && <p className="text-xs truncate">{v.contactEmail}</p>}
+                    {v.contactPhone && <p className="text-xs truncate">{v.contactPhone}</p>}
                     {!v.contactName && !v.contactEmail && !v.contactPhone && <span className="opacity-40">—</span>}
                   </td>
-                  <td className="px-6 py-3.5 text-muted-foreground">{v._count.subscriptions}</td>
-                  <td className="px-6 py-3.5">
+                  <td className="px-4 xl:px-6 py-3.5 text-muted-foreground">{v._count.subscriptions}</td>
+                  <td className="px-4 xl:px-6 py-3.5">
                     <div className="flex items-center justify-end gap-2">
                       <Button variant="outline" size="icon-sm" onClick={() => {
                         setEditing(v)

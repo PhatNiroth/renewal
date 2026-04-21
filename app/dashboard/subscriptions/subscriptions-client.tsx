@@ -370,7 +370,7 @@ export default function SubscriptionsClient({
       return sortDir === "asc" ? cmp : -cmp
     })
 
-  const SortIcon = ({ col }: { col: typeof sortKey }) =>
+  const sortIcon = (col: typeof sortKey) =>
     sortKey === col
       ? sortDir === "asc" ? <RiArrowUpLine className="size-3.5 ml-1 inline" /> : <RiArrowDownLine className="size-3.5 ml-1 inline" />
       : null
@@ -489,29 +489,29 @@ export default function SubscriptionsClient({
           </div>
 
           {/* Table (md+) */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="hidden md:block">
+            <table className="w-full text-sm table-fixed">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="cursor-pointer select-none px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("vendor")}>
-                    Vendor <SortIcon col="vendor" />
+                  <th className="cursor-pointer select-none px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("vendor")}>
+                    Vendor {sortIcon("vendor")}
                   </th>
-                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Plan</th>
-                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Department</th>
-                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Status</th>
-                  <th className="cursor-pointer select-none px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("cost")}>
-                    Cost <SortIcon col="cost" />
+                  <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Plan</th>
+                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Department</th>
+                  <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Status</th>
+                  <th className="cursor-pointer select-none px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("cost")}>
+                    Cost {sortIcon("cost")}
                   </th>
-                  <th className="cursor-pointer select-none px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("cycle")}>
-                    Cycle <SortIcon col="cycle" />
+                  <th className="hidden xl:table-cell cursor-pointer select-none px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("cycle")}>
+                    Cycle {sortIcon("cycle")}
                   </th>
-                  <th className="cursor-pointer select-none px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("renewal")}>
-                    Renewal <SortIcon col="renewal" />
+                  <th className="cursor-pointer select-none px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("renewal")}>
+                    Renewal {sortIcon("renewal")}
                   </th>
-                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Responsible</th>
-                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Document</th>
-                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Notes</th>
-                  {canEdit && <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>}
+                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Responsible</th>
+                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Document</th>
+                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Notes</th>
+                  {canEdit && <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Action</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -531,18 +531,18 @@ export default function SubscriptionsClient({
 
                   return (
                     <tr key={sub.id} className="hover:bg-muted/40 transition-colors">
-                      <td className="px-6 py-3.5 font-medium text-foreground">{sub.vendor.name}</td>
-                      <td className="px-6 py-3.5 text-muted-foreground">{sub.planName}</td>
-                      <td className="px-6 py-3.5 text-muted-foreground">{deptLabel((sub as any).department) ?? <span className="text-muted-foreground/40">—</span>}</td>
-                      <td className="px-6 py-3.5">
+                      <td className="px-4 xl:px-6 py-3.5 font-medium text-foreground truncate">{sub.vendor.name}</td>
+                      <td className="px-4 xl:px-6 py-3.5 text-muted-foreground truncate">{sub.planName}</td>
+                      <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground truncate">{deptLabel((sub as any).department) ?? <span className="text-muted-foreground/40">—</span>}</td>
+                      <td className="px-4 xl:px-6 py-3.5">
                         <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${status?.className}`}>
                           <StatusIcon className="size-3" />
                           {status?.label}
                         </span>
                       </td>
-                      <td className="px-6 py-3.5 font-medium text-foreground">{fmt(sub.cost)}</td>
-                      <td className="px-6 py-3.5 text-muted-foreground">{cycleLabel[sub.billingCycle] ?? sub.billingCycle}</td>
-                      <td className="px-6 py-3.5">
+                      <td className="px-4 xl:px-6 py-3.5 font-medium text-foreground">{fmt(sub.cost)}</td>
+                      <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground">{cycleLabel[sub.billingCycle] ?? sub.billingCycle}</td>
+                      <td className="px-4 xl:px-6 py-3.5">
                         <span className={isUrgent ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}>
                           {fmtDate(sub.renewalDate)}
                         </span>
@@ -552,23 +552,23 @@ export default function SubscriptionsClient({
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-3.5 text-muted-foreground">
+                      <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground truncate">
                         {sub.responsible?.name ?? sub.responsible?.email ?? <span className="text-muted-foreground/50">—</span>}
                       </td>
-                      <td className="px-6 py-3.5">
+                      <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5">
                         {sub.documentPath ? (
                           sub.documentPath.startsWith("http")
                             ? <a href={sub.documentPath} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline text-xs"><RiLink className="size-3.5" />View</a>
                             : <span className="text-xs text-muted-foreground font-mono">{sub.documentPath}</span>
                         ) : <span className="text-muted-foreground/50">—</span>}
                       </td>
-                      <td className="px-6 py-3.5 text-muted-foreground">
+                      <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground">
                         {sub.notes ? (
                           <span className="block max-w-60 truncate text-xs" title={sub.notes}>{sub.notes}</span>
                         ) : <span className="text-muted-foreground/50">—</span>}
                       </td>
                       {canEdit && (
-                        <td className="px-6 py-3.5">
+                        <td className="px-4 xl:px-6 py-3.5">
                           <div className="flex items-center gap-2">
                             <Button variant="outline" size="icon-sm" onClick={() => setEditing(sub)}>
                               <RiEditLine className="size-4" />

@@ -172,7 +172,7 @@ export default function BillingClient({
       return sortDir === "asc" ? cmp : -cmp
     })
 
-  const SortIcon = ({ col }: { col: typeof sortKey }) =>
+  const sortIcon = (col: typeof sortKey) =>
     sortKey === col
       ? sortDir === "asc" ? <RiArrowUpLine className="size-3.5 ml-1 inline" /> : <RiArrowDownLine className="size-3.5 ml-1 inline" />
       : null
@@ -255,23 +255,23 @@ export default function BillingClient({
             </div>
           </div>
 
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="hidden md:block">
+            <table className="w-full text-sm table-fixed">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="cursor-pointer select-none px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("vendor")}>
-                    Vendor / Plan <SortIcon col="vendor" />
+                  <th className="cursor-pointer select-none px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("vendor")}>
+                    Vendor / Plan {sortIcon("vendor")}
                   </th>
-                  <th className="cursor-pointer select-none px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("amount")}>
-                    Amount <SortIcon col="amount" />
+                  <th className="cursor-pointer select-none px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("amount")}>
+                    Amount {sortIcon("amount")}
                   </th>
-                  <th className="cursor-pointer select-none px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("date")}>
-                    Paid On <SortIcon col="date" />
+                  <th className="cursor-pointer select-none px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("date")}>
+                    Paid On {sortIcon("date")}
                   </th>
-                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Recorded By</th>
-                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Note</th>
-                  <th className="px-6 py-3 text-left font-medium text-muted-foreground">Receipt</th>
-                  {canDelete && <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>}
+                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Recorded By</th>
+                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Note</th>
+                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Receipt</th>
+                  {canDelete && <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Action</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -285,25 +285,25 @@ export default function BillingClient({
                   </tr>
                 ) : filtered.map(p => (
                   <tr key={p.id} className="hover:bg-muted/40 transition-colors">
-                    <td className="px-6 py-3.5">
-                      <p className="font-medium text-foreground">{p.subscription.vendor.name}</p>
-                      <p className="text-xs text-muted-foreground">{p.subscription.planName}</p>
+                    <td className="px-4 xl:px-6 py-3.5">
+                      <p className="font-medium text-foreground truncate">{p.subscription.vendor.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{p.subscription.planName}</p>
                     </td>
-                    <td className="px-6 py-3.5 font-medium text-foreground">{fmt(p.amount)}</td>
-                    <td className="px-6 py-3.5 text-muted-foreground">{fmtDate(p.paidAt)}</td>
-                    <td className="px-6 py-3.5 text-muted-foreground">
+                    <td className="px-4 xl:px-6 py-3.5 font-medium text-foreground">{fmt(p.amount)}</td>
+                    <td className="px-4 xl:px-6 py-3.5 text-muted-foreground">{fmtDate(p.paidAt)}</td>
+                    <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground truncate">
                       {p.paidBy?.name ?? p.paidBy?.email ?? <span className="text-muted-foreground/50">—</span>}
                     </td>
-                    <td className="px-6 py-3.5 text-muted-foreground max-w-[200px] truncate">
+                    <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground truncate">
                       {p.note ?? <span className="text-muted-foreground/40">—</span>}
                     </td>
-                    <td className="px-6 py-3.5">
+                    <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5">
                       {p.receiptUrl ? (
                         <a href={p.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline underline-offset-2">View</a>
                       ) : <span className="text-muted-foreground/40">—</span>}
                     </td>
                     {canDelete && (
-                      <td className="px-6 py-3.5">
+                      <td className="px-4 xl:px-6 py-3.5">
                         <Button variant="outline" size="icon-sm" className="text-destructive hover:text-destructive" onClick={() => { setDeleting(p); setDeleteError(null) }}>
                           <RiDeleteBinLine className="size-4" />
                         </Button>

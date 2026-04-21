@@ -149,15 +149,15 @@ export default function AdminVendorCategoriesPage() {
       </div>
 
       <div className="rounded-xl border border-border bg-card">
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="hidden md:block">
+          <table className="w-full text-sm table-fixed">
             <thead>
               <tr className="border-b border-border">
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Name</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Color</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Vendors</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Created</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Name</th>
+                <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Color</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Vendors</th>
+                <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Created</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -173,11 +173,11 @@ export default function AdminVendorCategoriesPage() {
                 </tr>
               ) : categories.map(cat => (
                 <tr key={cat.id} className="hover:bg-muted/40 transition-colors">
-                  <td className="px-6 py-4 font-medium text-foreground">{cat.name}</td>
-                  <td className="px-6 py-4"><ColorDot color={cat.color} /></td>
-                  <td className="px-6 py-4 text-muted-foreground">{cat._count.vendors}</td>
-                  <td className="px-6 py-4 text-muted-foreground">{fmtDate(cat.createdAt)}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 xl:px-6 py-4 font-medium text-foreground truncate">{cat.name}</td>
+                  <td className="hidden xl:table-cell px-4 xl:px-6 py-4"><ColorDot color={cat.color} /></td>
+                  <td className="px-4 xl:px-6 py-4 text-muted-foreground">{cat._count.vendors}</td>
+                  <td className="hidden xl:table-cell px-4 xl:px-6 py-4 text-muted-foreground">{fmtDate(cat.createdAt)}</td>
+                  <td className="px-4 xl:px-6 py-4">
                     <div className="flex items-center justify-end gap-2">
                       <Button variant="outline" size="icon-sm" onClick={() => {
                         setEditing(cat); setEditName(cat.name); setEditColor(cat.color); setError(null)

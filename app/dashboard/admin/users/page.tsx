@@ -100,15 +100,15 @@ export default function AdminUsersPage() {
       </div>
 
       <div className="rounded-xl border border-border bg-card">
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="hidden md:block">
+          <table className="w-full text-sm table-fixed">
             <thead>
               <tr className="border-b border-border">
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Name</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Role</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Subs.</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Joined</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Name</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Role</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Subs.</th>
+                <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Joined</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -118,25 +118,25 @@ export default function AdminUsersPage() {
                 const initials = (u.name ?? u.email).slice(0, 2).toUpperCase()
                 return (
                   <tr key={u.id} className="hover:bg-muted/40 transition-colors">
-                    <td className="px-6 py-3.5">
-                      <div className="flex items-center gap-3">
+                    <td className="px-4 xl:px-6 py-3.5">
+                      <div className="flex items-center gap-3 min-w-0">
                         <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">{initials}</div>
-                        <div>
-                          <p className="font-medium text-foreground">{u.name ?? "—"}</p>
-                          <p className="text-xs text-muted-foreground">{u.email}</p>
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground truncate">{u.name ?? "—"}</p>
+                          <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-3.5">
+                    <td className="px-4 xl:px-6 py-3.5">
                       {u.isAdmin
                         ? <span className="inline-flex items-center rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">Admin</span>
                         : u.role
                           ? <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">{u.role.name}</span>
                           : <span className="text-muted-foreground/50 text-xs">No role</span>}
                     </td>
-                    <td className="px-6 py-3.5 text-muted-foreground">{u._count.responsibleFor}</td>
-                    <td className="px-6 py-3.5 text-muted-foreground">{fmtDate(u.createdAt)}</td>
-                    <td className="px-6 py-3.5">
+                    <td className="px-4 xl:px-6 py-3.5 text-muted-foreground">{u._count.responsibleFor}</td>
+                    <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground">{fmtDate(u.createdAt)}</td>
+                    <td className="px-4 xl:px-6 py-3.5">
                       <div className="flex items-center justify-end gap-2">
                         <Button variant="outline" size="icon-sm" onClick={() => {
                           setEditing(u)

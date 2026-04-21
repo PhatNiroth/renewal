@@ -82,22 +82,22 @@ export default function AdminRenewalsPage() {
     const overdue = new Date(s.renewalDate).getTime() < Date.now()
     return (
       <tr className="hover:bg-muted/40 transition-colors">
-        <td className="px-6 py-3.5">
-          <p className="font-medium text-foreground">{s.vendor.name}</p>
-          <p className="text-xs text-muted-foreground">{s.planName}</p>
+        <td className="px-4 xl:px-6 py-3.5">
+          <p className="font-medium text-foreground truncate">{s.vendor.name}</p>
+          <p className="text-xs text-muted-foreground truncate">{s.planName}</p>
         </td>
-        <td className="px-6 py-3.5">
+        <td className="px-4 xl:px-6 py-3.5">
           <span className={cn("inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium", STATUS_COLORS[s.status])}>
             {STATUS_LABELS[s.status] ?? s.status}
           </span>
         </td>
-        <td className="px-6 py-3.5">
+        <td className="px-4 xl:px-6 py-3.5">
           <p className="text-foreground">{fmtDate(s.renewalDate)}</p>
           <p className={cn("text-xs", overdue ? "text-destructive" : "text-muted-foreground")}>{daysUntil(s.renewalDate)}</p>
         </td>
-        <td className="px-6 py-3.5 font-medium text-foreground">{fmt(s.cost)}</td>
-        <td className="px-6 py-3.5 text-muted-foreground text-sm">{s.responsible?.name ?? s.responsible?.email ?? <span className="opacity-40">—</span>}</td>
-        <td className="px-6 py-3.5">
+        <td className="px-4 xl:px-6 py-3.5 font-medium text-foreground">{fmt(s.cost)}</td>
+        <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground text-sm truncate">{s.responsible?.name ?? s.responsible?.email ?? <span className="opacity-40">—</span>}</td>
+        <td className="px-4 xl:px-6 py-3.5">
           <div className="flex items-center justify-end gap-2">
             <Button variant="outline" size="icon-sm" title="Edit renewal date" onClick={() => { setEditDate(s); setNewDate(new Date(s.renewalDate).toISOString().split("T")[0]); setError(null) }}>
               <RiEditLine className="size-4" />
@@ -162,12 +162,12 @@ export default function AdminRenewalsPage() {
   const tableHead = (
     <thead>
       <tr className="border-b border-border">
-        <th className="px-6 py-3 text-left font-medium text-muted-foreground">Subscription</th>
-        <th className="px-6 py-3 text-left font-medium text-muted-foreground">Status</th>
-        <th className="px-6 py-3 text-left font-medium text-muted-foreground">Renewal Date</th>
-        <th className="px-6 py-3 text-left font-medium text-muted-foreground">Cost</th>
-        <th className="px-6 py-3 text-left font-medium text-muted-foreground">Responsible</th>
-        <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>
+        <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Subscription</th>
+        <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Status</th>
+        <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Renewal Date</th>
+        <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Cost</th>
+        <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Responsible</th>
+        <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Action</th>
       </tr>
     </thead>
   )
@@ -186,8 +186,8 @@ export default function AdminRenewalsPage() {
             <RiCalendarLine className="size-4 text-destructive" />Needs Attention ({expiringSoon.length})
           </h2>
           <div className="rounded-xl border border-destructive/20 bg-card">
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="hidden md:block">
+              <table className="w-full text-sm table-fixed">
                 {tableHead}
                 <tbody className="divide-y divide-border">
                   {loading ? (
@@ -209,8 +209,8 @@ export default function AdminRenewalsPage() {
       <div className="space-y-3">
         <h2 className="text-sm font-semibold text-foreground">Active Subscriptions ({active.length})</h2>
         <div className="rounded-xl border border-border bg-card">
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="hidden md:block">
+            <table className="w-full text-sm table-fixed">
               {tableHead}
               <tbody className="divide-y divide-border">
                 {loading ? (

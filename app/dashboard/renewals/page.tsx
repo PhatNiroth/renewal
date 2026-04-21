@@ -83,18 +83,18 @@ export default async function RenewalsPage() {
           <p className="text-xs text-muted-foreground mt-0.5">Active subscriptions sorted by renewal date</p>
         </div>
 
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="hidden md:block">
+          <table className="w-full text-sm table-fixed">
             <thead>
               <tr className="border-b border-border">
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Vendor</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Plan</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Cost</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Cycle</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Renewal Date</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Due In</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Responsible</th>
-                {canRenew && <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>}
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Vendor</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Plan</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Cost</th>
+                <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Cycle</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Renewal Date</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Due In</th>
+                <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Responsible</th>
+                {canRenew && <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Action</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -132,22 +132,22 @@ export default async function RenewalsPage() {
 
                 return (
                   <tr key={sub.id} className="hover:bg-muted/40 transition-colors">
-                    <td className="px-6 py-3.5 font-medium text-foreground">{sub.vendor.name}</td>
-                    <td className="px-6 py-3.5 text-muted-foreground">{sub.planName}</td>
-                    <td className="px-6 py-3.5 font-medium text-foreground">{fmt(sub.cost)}</td>
-                    <td className="px-6 py-3.5 text-muted-foreground">{cycleLabel[sub.billingCycle] ?? sub.billingCycle}</td>
-                    <td className="px-6 py-3.5 text-muted-foreground">{fmtDate(sub.renewalDate)}</td>
-                    <td className="px-6 py-3.5">
+                    <td className="px-4 xl:px-6 py-3.5 font-medium text-foreground truncate">{sub.vendor.name}</td>
+                    <td className="px-4 xl:px-6 py-3.5 text-muted-foreground truncate">{sub.planName}</td>
+                    <td className="px-4 xl:px-6 py-3.5 font-medium text-foreground">{fmt(sub.cost)}</td>
+                    <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground">{cycleLabel[sub.billingCycle] ?? sub.billingCycle}</td>
+                    <td className="px-4 xl:px-6 py-3.5 text-muted-foreground">{fmtDate(sub.renewalDate)}</td>
+                    <td className="px-4 xl:px-6 py-3.5">
                       <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${urgencyClass}`}>
                         <UrgencyIcon className="size-3" />
                         {urgencyLabel}
                       </span>
                     </td>
-                    <td className="px-6 py-3.5 text-muted-foreground">
+                    <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground truncate">
                       {sub.responsible?.name ?? sub.responsible?.email ?? <span className="text-muted-foreground/40">—</span>}
                     </td>
                     {canRenew && (
-                      <td className="px-6 py-3.5 text-right">
+                      <td className="px-4 xl:px-6 py-3.5 text-right">
                         <MarkRenewedButton subscriptionId={sub.id} />
                       </td>
                     )}

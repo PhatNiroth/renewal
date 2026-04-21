@@ -160,15 +160,15 @@ export default function AdminRolesPage() {
       </div>
 
       <div className="rounded-xl border border-border bg-card">
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="hidden md:block">
+          <table className="w-full text-sm table-fixed">
             <thead>
               <tr className="border-b border-border">
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Role Name</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Users</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Created</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Permissions</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground">Action</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Role Name</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Users</th>
+                <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Created</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Permissions</th>
+                <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -186,14 +186,14 @@ export default function AdminRolesPage() {
                 const perms = permsFromApi(role.permissions)
                 return (
                   <tr key={role.id} className="hover:bg-muted/40 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-foreground">{role.name}</p>
+                    <td className="px-4 xl:px-6 py-4">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className="font-medium text-foreground truncate">{role.name}</p>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-muted-foreground">{role._count.users}</td>
-                    <td className="px-6 py-4 text-muted-foreground">{fmtDate(role.createdAt)}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 xl:px-6 py-4 text-muted-foreground">{role._count.users}</td>
+                    <td className="hidden xl:table-cell px-4 xl:px-6 py-4 text-muted-foreground">{fmtDate(role.createdAt)}</td>
+                    <td className="px-4 xl:px-6 py-4">
                       <div className="flex flex-wrap gap-1">
                         {MODULES.map(mod => {
                           const p = perms[mod]
@@ -211,7 +211,7 @@ export default function AdminRolesPage() {
                         })}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 xl:px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
                         <Button variant="outline" size="icon-sm" onClick={() => {
                           setEditing(role)

@@ -9,14 +9,18 @@ function getResend() {
   return globalForResend.resend
 }
 
-const FROM = process.env.EMAIL_FROM ?? "noreply@subtrack.app"
-
 export async function sendEmail(
   to: string,
   subject: string,
   html: string
 ): Promise<void> {
-  const { error } = await getResend().emails.send({ from: FROM, to, subject, html })
+  const from = process.env.EMAIL_FROM
+  if (!from) {
+    throw new Error(
+      "EMAIL_FROM is not configured. Set it to an address on a Resend-verified domain (https://resend.com/domains)."
+    )
+  }
+  const { error } = await getResend().emails.send({ from, to, subject, html })
   if (error) throw new Error(`Email send failed: ${error.message}`)
 }
 

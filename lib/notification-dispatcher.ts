@@ -141,12 +141,14 @@ export async function runNotificationDispatcher(): Promise<DispatchResult> {
     })
 
     for (const sub of subscriptions) {
-      // Any existing row (sent or in-progress) means another worker has claimed this window.
-      // Only the worker that wins the create() below is allowed to send.
-      if (sub.notificationLogs.length > 0) {
+      // Skip only if a prior attempt already succeeded for this window.
+      // A row with sentAt=null is a failed/interrupted claim that we want to retry.
+      const priorLog = sub.notificationLogs.find(l => l.sentAt !== null)
+      if (priorLog) {
         skipped++
         continue
       }
+      const staleLog = sub.notificationLogs.find(l => l.sentAt === null)
 
       // Build recipient list
       const recipients: { id: string; name: string; email: string }[] = []
@@ -175,18 +177,23 @@ export async function runNotificationDispatcher(): Promise<DispatchResult> {
         continue
       }
 
-      // Create the log row as an atomic claim. If another worker beat us, P2002 means
-      // they already own this send — skip to avoid duplicate delivery.
+      // Claim the window: reuse a prior failed row if present, otherwise create a new one.
+      // On unique-violation (P2002) another worker just claimed it — skip to avoid double-send.
       let log
       try {
-        log = await db.notificationLog.create({
-          data: {
-            subscriptionId: sub.id,
-            type,
-            scheduledFor:   from,
-            recipients:     recipients.map(r => ({ name: r.name, email: r.email })),
-          },
-        })
+        log = staleLog
+          ? await db.notificationLog.update({
+              where: { id: staleLog.id },
+              data:  { recipients: recipients.map(r => ({ name: r.name, email: r.email })) },
+            })
+          : await db.notificationLog.create({
+              data: {
+                subscriptionId: sub.id,
+                type,
+                scheduledFor:   from,
+                recipients:     recipients.map(r => ({ name: r.name, email: r.email })),
+              },
+            })
       } catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
           skipped++

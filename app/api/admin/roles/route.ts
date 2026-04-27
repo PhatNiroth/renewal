@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/permissions"
 import { NextResponse } from "next/server"
 import { Module } from "@prisma/client"
 
-const ALL_MODULES = [Module.SUBSCRIPTIONS, Module.RENEWALS, Module.VENDORS, Module.VENDOR_CATEGORIES, Module.PAYMENTS]
+const ALL_MODULES = [Module.SUBSCRIPTIONS, Module.RENEWALS, Module.VENDORS, Module.PAYMENTS]
 
 export async function GET() {
   const { error } = await requireAdmin()

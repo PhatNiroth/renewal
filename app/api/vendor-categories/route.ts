@@ -14,7 +14,7 @@ export async function GET() {
 
   const u = session.user as { isAdmin?: boolean }
   const perms = getPermissions(session)
-  if (!u.isAdmin && !can(perms, "VENDOR_CATEGORIES", "view")) {
+  if (!u.isAdmin && !can(perms, "VENDORS", "view")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
@@ -31,7 +31,8 @@ export async function POST(req: Request) {
 
   const u = session.user as { isAdmin?: boolean }
   const perms = getPermissions(session)
-  if (!u.isAdmin && !can(perms, "VENDOR_CATEGORIES", "add")) {
+  // Inline category create is a sub-action of managing vendors.
+  if (!u.isAdmin && !can(perms, "VENDORS", "add") && !can(perms, "VENDORS", "edit")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

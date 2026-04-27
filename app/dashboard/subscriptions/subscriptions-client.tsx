@@ -5,14 +5,15 @@ import { useRouter } from "next/navigation"
 import {
   RiAddLine, RiSearchLine, RiFilterLine,
   RiArrowUpLine, RiArrowDownLine, RiCheckLine,
-  RiTimeLine, RiLoader4Line, RiAlertLine, RiCloseLine,
+  RiLoader4Line, RiAlertLine, RiCloseLine,
   RiEditLine, RiDeleteBinLine, RiLink,
+  RiCheckDoubleLine, RiHistoryLine, RiEyeLine,
 } from "@remixicon/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Modal } from "@/components/ui/modal"
 import { Combobox } from "@/components/ui/combobox"
-import { createSubscription, updateSubscription, deleteSubscription } from "@/app/actions/subscriptions"
+import { createSubscription, updateSubscription, deleteSubscription, markAsRenewed } from "@/app/actions/subscriptions"
 import { toast } from "react-hot-toast"
 import type { Subscription, Vendor, User } from "@prisma/client"
 
@@ -50,6 +51,26 @@ function deptLabel(value: string | null | undefined) {
 }
 
 const ALL_STATUSES = ["ACTIVE", "EXPIRING_SOON", "EXPIRED", "CANCELLED"]
+
+type RenewalFilter = "ALL" | "OVERDUE" | "7D" | "30D" | "90D"
+const RENEWAL_FILTERS: { value: RenewalFilter; label: string }[] = [
+  { value: "ALL",     label: "All"          },
+  { value: "OVERDUE", label: "Overdue"      },
+  { value: "7D",      label: "Due 7 days"   },
+  { value: "30D",     label: "Due 30 days"  },
+  { value: "90D",     label: "Due 90 days"  },
+]
+
+function matchesRenewalFilter(sub: { renewalDate: Date | string; status: string }, f: RenewalFilter): boolean {
+  if (f === "ALL") return true
+  if (sub.status === "CANCELLED") return false
+  const d = Math.ceil((new Date(sub.renewalDate).getTime() - Date.now()) / 86_400_000)
+  if (f === "OVERDUE") return d < 0
+  if (f === "7D")  return d <= 7
+  if (f === "30D") return d <= 30
+  if (f === "90D") return d <= 90
+  return true
+}
 
 function fmt(n: number) { return `$${(n / 100).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` }
 function fmtDate(d: Date | string | null) {
@@ -413,6 +434,136 @@ function EditSubscriptionModal({
   )
 }
 
+// ─── Details Modal ────────────────────────────────────────────────────────────
+
+function DetailsModal({ sub, onClose }: { sub: SubscriptionFull; onClose: () => void }) {
+  const status     = statusConfig[sub.status]
+  const StatusIcon = status?.icon ?? RiCheckLine
+  const dept       = deptLabel((sub as SubscriptionFull & { department?: string | null }).department)
+
+  const rows: { label: string; value: React.ReactNode }[] = [
+    {
+      label: "Status",
+      value: (
+        <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${status?.className}`}>
+          <StatusIcon className="size-3" />
+          {status?.label}
+        </span>
+      ),
+    },
+    { label: "Department",    value: dept ?? "—" },
+    { label: "Cost",          value: fmt(sub.cost) },
+    { label: "Renewal Date",  value: fmtDate(sub.renewalDate) },
+    { label: "Auto-renew",    value: sub.autoRenew ? "Yes" : "No" },
+    { label: "Responsible",   value: sub.responsible?.name ?? sub.responsible?.email ?? "—" },
+    { label: "Notes",         value: sub.notes ?? "—" },
+  ]
+
+  return (
+    <Modal title={`${sub.vendor.name} — ${sub.planName}`} onClose={onClose}>
+      <div className="space-y-4">
+        <dl className="rounded-lg border border-border overflow-hidden">
+          {rows.map((row, i) => (
+            <div
+              key={row.label}
+              className={`grid grid-cols-[120px_1fr] gap-3 px-4 py-2.5 text-sm ${i !== rows.length - 1 ? "border-b border-border" : ""}`}
+            >
+              <dt className="text-muted-foreground">{row.label}</dt>
+              <dd className="text-foreground break-words">{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+        <div className="flex justify-end">
+          <Button variant="outline" onClick={onClose}>Close</Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+// ─── History Modal ────────────────────────────────────────────────────────────
+
+type HistoryEntry = {
+  id: string
+  previousDate: string
+  newDate: string
+  createdAt: string
+  renewedBy: { name: string | null; email: string }
+}
+
+function HistoryModal({ sub, onClose }: { sub: SubscriptionFull; onClose: () => void }) {
+  const [logs, setLogs]       = useState<HistoryEntry[] | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+    fetch(`/api/subscriptions/${sub.id}/history`)
+      .then(async r => {
+        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "Failed to load history")
+        return r.json()
+      })
+      .then((data: HistoryEntry[]) => { if (!cancelled) setLogs(data) })
+      .catch(e => { if (!cancelled) setError(e.message) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [sub.id])
+
+  return (
+    <Modal title={`Renewal history — ${sub.vendor.name} · ${sub.planName}`} onClose={onClose} size="lg">
+      <div className="space-y-4">
+        {loading && (
+          <div className="py-12 text-center text-muted-foreground">
+            <RiLoader4Line className="size-5 animate-spin inline" />
+          </div>
+        )}
+        {error && <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
+        {!loading && !error && logs && logs.length === 0 && (
+          <div className="py-10 text-center">
+            <RiHistoryLine className="mx-auto size-10 text-muted-foreground/40" />
+            <p className="mt-3 text-sm text-muted-foreground">No renewals recorded yet.</p>
+            <p className="text-xs text-muted-foreground mt-1">Logs appear here when this subscription is marked as renewed.</p>
+          </div>
+        )}
+        {!loading && !error && logs && logs.length > 0 && (
+          <div className="rounded-lg border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40">
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Previous</th>
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">New</th>
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">Renewed by</th>
+                  <th className="px-3 py-2 text-left font-medium text-muted-foreground">When</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {logs.map(log => (
+                  <tr key={log.id}>
+                    <td className="px-3 py-2 text-muted-foreground">{fmtDate(log.previousDate)}</td>
+                    <td className="px-3 py-2 text-foreground">{fmtDate(log.newDate)}</td>
+                    <td className="px-3 py-2 text-foreground truncate">{log.renewedBy.name || log.renewedBy.email}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{fmtDate(log.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {!loading && !error && logs && (
+          <p className="text-xs text-muted-foreground">
+            Auto-renewals are not shown — only manual &quot;Mark as Renewed&quot; actions are logged.
+          </p>
+        )}
+        <div className="flex justify-end pt-1">
+          <Button variant="outline" onClick={onClose}>Close</Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function SubscriptionsClient({
@@ -421,26 +572,38 @@ export default function SubscriptionsClient({
   users,
   canEdit,
   canAdd,
+  canDelete,
+  canViewHistory,
+  canMarkRenewed,
 }: {
   subscriptions: SubscriptionFull[]
   vendors: Vendor[]
   users: Pick<User, "id" | "name" | "email">[]
   canEdit: boolean
   canAdd: boolean
+  canDelete: boolean
+  canViewHistory: boolean
+  canMarkRenewed: boolean
 }) {
   const router = useRouter()
   const [search, setSearch]               = useState("")
-  const [statusFilter, setStatusFilter]   = useState("ALL")
+  const [renewalFilter, setRenewalFilter] = useState<RenewalFilter>("ALL")
   const [deptFilter, setDeptFilter]       = useState("ALL")
-  const [sortKey, setSortKey]             = useState<"vendor" | "cost" | "renewal">("renewal")
-  const [sortDir, setSortDir]           = useState<"asc" | "desc">("asc")
-  const [showModal, setShowModal]       = useState(false)
-  const [editing, setEditing]           = useState<SubscriptionFull | null>(null)
-  const [deleting, setDeleting]         = useState<SubscriptionFull | null>(null)
-  const [deleteError, setDeleteError]   = useState<string | null>(null)
-  const [page, setPage]                 = useState(1)
-  const pageSize                        = 10
-  const [, startTransition]             = useTransition()
+  const [sortKey, setSortKey]             = useState<"vendor" | "renewal">("renewal")
+  const [sortDir, setSortDir]             = useState<"asc" | "desc">("asc")
+  const [showModal, setShowModal]         = useState(false)
+  const [editing, setEditing]             = useState<SubscriptionFull | null>(null)
+  const [deleting, setDeleting]           = useState<SubscriptionFull | null>(null)
+  const [deleteError, setDeleteError]     = useState<string | null>(null)
+  const [renewing, setRenewing]           = useState<string | null>(null)
+  const [historyFor, setHistoryFor]       = useState<SubscriptionFull | null>(null)
+  const [viewing, setViewing]             = useState<SubscriptionFull | null>(null)
+  const [page, setPage]                   = useState(1)
+  const pageSize                          = 10
+  const [, startTransition]               = useTransition()
+
+  // Always shown — View details is available to anyone who can see the table
+  const showActionsCol = true
 
   const toggleSort = (key: typeof sortKey) => {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc")
@@ -451,7 +614,7 @@ export default function SubscriptionsClient({
   const activeDepts = DEPARTMENTS.filter(d => usedDepts.has(d.value))
 
   const filtered = subscriptions
-    .filter(s => statusFilter === "ALL" || s.status === statusFilter)
+    .filter(s => matchesRenewalFilter(s, renewalFilter))
     .filter(s => deptFilter === "ALL" || (s as any).department === deptFilter)
     .filter(s => {
       if (!search) return true
@@ -462,12 +625,11 @@ export default function SubscriptionsClient({
     .sort((a, b) => {
       let cmp = 0
       if (sortKey === "vendor")  cmp = a.vendor.name.localeCompare(b.vendor.name)
-      if (sortKey === "cost")    cmp = a.cost - b.cost
       if (sortKey === "renewal") cmp = new Date(a.renewalDate).getTime() - new Date(b.renewalDate).getTime()
       return sortDir === "asc" ? cmp : -cmp
     })
 
-  const filterKey = `${search}|${statusFilter}|${deptFilter}|${sortKey}|${sortDir}`
+  const filterKey = `${search}|${renewalFilter}|${deptFilter}|${sortKey}|${sortDir}`
   const [prevFilterKey, setPrevFilterKey] = useState(filterKey)
   if (prevFilterKey !== filterKey) {
     setPrevFilterKey(filterKey)
@@ -488,8 +650,16 @@ export default function SubscriptionsClient({
     startTransition(async () => {
       const result = await deleteSubscription(id)
       if ("error" in result) { setDeleteError(result.error); toast.error("Failed to delete subscription") }
-      else { toast.success("Subscription deleted"); setDeleting(null); setDeleteError(null) }
+      else { toast.success("Subscription deleted"); setDeleting(null); setDeleteError(null); router.refresh() }
     })
+  }
+
+  async function handleMarkRenewed(id: string) {
+    setRenewing(id)
+    const result = await markAsRenewed(id)
+    setRenewing(null)
+    if ("error" in result) toast.error(result.error || "Failed to mark as renewed")
+    else { toast.success("Marked as renewed"); router.refresh() }
   }
 
   return (
@@ -510,6 +680,14 @@ export default function SubscriptionsClient({
           onClose={() => setEditing(null)}
           onSuccess={() => router.refresh()}
         />
+      )}
+
+      {viewing && (
+        <DetailsModal sub={viewing} onClose={() => setViewing(null)} />
+      )}
+
+      {historyFor && (
+        <HistoryModal sub={historyFor} onClose={() => setHistoryFor(null)} />
       )}
 
       {deleting && (
@@ -558,15 +736,16 @@ export default function SubscriptionsClient({
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <RiFilterLine className="size-4 text-muted-foreground shrink-0" />
-                {["ALL", ...ALL_STATUSES].map(s => (
+                <span className="text-xs text-muted-foreground shrink-0">Upcoming renewal:</span>
+                {RENEWAL_FILTERS.map(f => (
                   <button
-                    key={s}
-                    onClick={() => setStatusFilter(s)}
+                    key={f.value}
+                    onClick={() => setRenewalFilter(f.value)}
                     className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                      statusFilter === s ? "bg-primary text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      renewalFilter === f.value ? "bg-primary text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"
                     }`}
                   >
-                    {s === "ALL" ? "All" : statusConfig[s]?.label ?? s}
+                    {f.label}
                   </button>
                 ))}
               </div>
@@ -606,35 +785,25 @@ export default function SubscriptionsClient({
                   <th className="cursor-pointer select-none px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("vendor")}>
                     Vendor {sortIcon("vendor")}
                   </th>
-                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Department</th>
-                  <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Status</th>
+                  <th className="px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Cycle</th>
                   <th className="cursor-pointer select-none px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("renewal")}>
                     Renewal {sortIcon("renewal")}
                   </th>
-                  <th className="cursor-pointer select-none px-4 xl:px-6 py-3 text-right font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("cost")}>
-                    Cost {sortIcon("cost")}
-                  </th>
-                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Cycle</th>
-                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Responsible</th>
-                  <th className="hidden xl:table-cell px-4 xl:px-6 py-3 text-left font-medium text-muted-foreground">Notes</th>
-                  {canEdit && <th className="px-4 xl:px-6 py-3 text-right font-medium text-muted-foreground">Action</th>}
+                  {showActionsCol && <th className="px-4 xl:px-6 py-3 text-right font-medium text-muted-foreground">Action</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={canEdit ? 10 : 9} className="px-6 py-16 text-center text-sm text-muted-foreground">
+                    <td colSpan={showActionsCol ? 5 : 4} className="px-6 py-16 text-center text-sm text-muted-foreground">
                       {subscriptions.length === 0
                         ? "No subscriptions yet. Click \"New Subscription\" to create one."
                         : "No subscriptions match your search."}
                     </td>
                   </tr>
                 ) : paged.map(sub => {
-                  const status    = statusConfig[sub.status]
-                  const StatusIcon = status?.icon ?? RiCheckLine
                   const days      = daysUntil(sub.renewalDate)
                   const isUrgent  = days <= 7 && days >= 0 && sub.status === "ACTIVE"
-                  const dept      = deptLabel((sub as SubscriptionFull & { department?: string | null }).department)
 
                   return (
                     <tr key={sub.id} className="hover:bg-muted/40 transition-colors">
@@ -658,12 +827,9 @@ export default function SubscriptionsClient({
                           )}
                         </span>
                       </td>
-                      <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground truncate">{dept ?? <span className="text-muted-foreground/40">—</span>}</td>
-                      <td className="px-4 xl:px-6 py-3.5">
-                        <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${status?.className}`}>
-                          <StatusIcon className="size-3" />
-                          {status?.label}
-                        </span>
+                      <td className="px-4 xl:px-6 py-3.5 text-muted-foreground">
+                        {cycleLabel[sub.billingCycle] ?? sub.billingCycle}
+                        {sub.billingCycle === "CUSTOM" && sub.customDays ? ` (${sub.customDays}d)` : ""}
                       </td>
                       <td className="px-4 xl:px-6 py-3.5">
                         <span className={isUrgent ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}>
@@ -675,28 +841,41 @@ export default function SubscriptionsClient({
                           </span>
                         )}
                       </td>
-                      <td className="px-4 xl:px-6 py-3.5 text-right font-medium text-foreground tabular-nums">{fmt(sub.cost)}</td>
-                      <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground">
-                        {cycleLabel[sub.billingCycle] ?? sub.billingCycle}
-                        {sub.billingCycle === "CUSTOM" && sub.customDays ? ` (${sub.customDays}d)` : ""}
-                      </td>
-                      <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground truncate">
-                        {sub.responsible?.name ?? sub.responsible?.email ?? <span className="text-muted-foreground/40">—</span>}
-                      </td>
-                      <td className="hidden xl:table-cell px-4 xl:px-6 py-3.5 text-muted-foreground">
-                        {sub.notes
-                          ? <span title={sub.notes} className="block truncate max-w-50">{sub.notes}</span>
-                          : <span className="text-muted-foreground/40">—</span>}
-                      </td>
-                      {canEdit && (
+                      {showActionsCol && (
                         <td className="px-4 xl:px-6 py-3.5">
                           <div className="flex items-center justify-end gap-2">
-                            <Button variant="outline" size="icon-sm" onClick={() => setEditing(sub)}>
-                              <RiEditLine className="size-4" />
+                            {canMarkRenewed && sub.status !== "CANCELLED" && daysUntil(sub.renewalDate) <= 30 && (
+                              <Button
+                                variant="outline"
+                                size="icon-sm"
+                                title="Mark as Renewed"
+                                className="text-emerald-600 hover:text-emerald-600"
+                                disabled={renewing === sub.id}
+                                onClick={() => handleMarkRenewed(sub.id)}
+                              >
+                                {renewing === sub.id
+                                  ? <RiLoader4Line className="size-4 animate-spin" />
+                                  : <RiCheckDoubleLine className="size-4" />}
+                              </Button>
+                            )}
+                            <Button variant="outline" size="icon-sm" title="View details" onClick={() => setViewing(sub)}>
+                              <RiEyeLine className="size-4" />
                             </Button>
-                            <Button variant="outline" size="icon-sm" className="text-destructive hover:text-destructive" onClick={() => { setDeleting(sub); setDeleteError(null) }}>
-                              <RiDeleteBinLine className="size-4" />
-                            </Button>
+                            {canViewHistory && (
+                              <Button variant="outline" size="icon-sm" title="View renewal history" onClick={() => setHistoryFor(sub)}>
+                                <RiHistoryLine className="size-4" />
+                              </Button>
+                            )}
+                            {canEdit && (
+                              <Button variant="outline" size="icon-sm" title="Edit" onClick={() => setEditing(sub)}>
+                                <RiEditLine className="size-4" />
+                              </Button>
+                            )}
+                            {canDelete && (
+                              <Button variant="outline" size="icon-sm" title="Delete" className="text-destructive hover:text-destructive" onClick={() => { setDeleting(sub); setDeleteError(null) }}>
+                                <RiDeleteBinLine className="size-4" />
+                              </Button>
+                            )}
                           </div>
                         </td>
                       )}
@@ -716,8 +895,6 @@ export default function SubscriptionsClient({
                   : "No subscriptions match your search."}
               </div>
             ) : paged.map(sub => {
-              const status    = statusConfig[sub.status]
-              const StatusIcon = status?.icon ?? RiCheckLine
               const days      = daysUntil(sub.renewalDate)
               const isUrgent  = days <= 7 && days >= 0 && sub.status === "ACTIVE"
 
@@ -730,23 +907,23 @@ export default function SubscriptionsClient({
                         {sub.autoRenew && (
                           <span className="inline-flex items-center rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400 shrink-0">Auto</span>
                         )}
+                        {sub.documentPath && (
+                          sub.documentPath.startsWith("http")
+                            ? <a href={sub.documentPath} target="_blank" rel="noreferrer" title="View document" className="shrink-0 text-primary hover:text-primary/80"><RiLink className="size-3.5" /></a>
+                            : <span title={sub.documentPath} className="shrink-0 text-muted-foreground/70"><RiLink className="size-3.5" /></span>
+                        )}
                       </div>
                       <div className="text-xs text-muted-foreground truncate">{sub.planName}</div>
                     </div>
-                    <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium shrink-0 ${status?.className}`}>
-                      <StatusIcon className="size-3" />
-                      {status?.label}
-                    </span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
                     <div>
-                      <div className="text-muted-foreground">Cost</div>
-                      <div className="font-medium text-foreground">{fmt(sub.cost)}</div>
-                    </div>
-                    <div>
                       <div className="text-muted-foreground">Cycle</div>
-                      <div className="text-foreground">{cycleLabel[sub.billingCycle] ?? sub.billingCycle}</div>
+                      <div className="text-foreground">
+                        {cycleLabel[sub.billingCycle] ?? sub.billingCycle}
+                        {sub.billingCycle === "CUSTOM" && sub.customDays ? ` (${sub.customDays}d)` : ""}
+                      </div>
                     </div>
                     <div>
                       <div className="text-muted-foreground">Renewal</div>
@@ -759,34 +936,42 @@ export default function SubscriptionsClient({
                         )}
                       </div>
                     </div>
-                    <div>
-                      <div className="text-muted-foreground">Department</div>
-                      <div className="text-foreground truncate">{deptLabel((sub as SubscriptionFull & { department?: string | null }).department) ?? "—"}</div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground">Responsible</div>
-                      <div className="text-foreground truncate">{sub.responsible?.name ?? sub.responsible?.email ?? "—"}</div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground">Document</div>
-                      <div className="text-foreground truncate">
-                        {sub.documentPath ? (
-                          sub.documentPath.startsWith("http")
-                            ? <a href={sub.documentPath} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline"><RiLink className="size-3" />View</a>
-                            : <span className="font-mono">{sub.documentPath}</span>
-                        ) : "—"}
-                      </div>
-                    </div>
                   </div>
 
-                  {canEdit && (
+                  {showActionsCol && (
                     <div className="flex items-center gap-2 pt-1">
-                      <Button variant="outline" size="sm" onClick={() => setEditing(sub)} className="flex-1">
-                        <RiEditLine className="size-4" data-icon="inline-start" />Edit
+                      {canMarkRenewed && sub.status !== "CANCELLED" && daysUntil(sub.renewalDate) <= 30 && (
+                        <Button
+                          variant="outline"
+                          size="icon-sm"
+                          title="Mark as Renewed"
+                          className="text-emerald-600 hover:text-emerald-600"
+                          disabled={renewing === sub.id}
+                          onClick={() => handleMarkRenewed(sub.id)}
+                        >
+                          {renewing === sub.id
+                            ? <RiLoader4Line className="size-4 animate-spin" />
+                            : <RiCheckDoubleLine className="size-4" />}
+                        </Button>
+                      )}
+                      <Button variant="outline" size="icon-sm" title="View details" onClick={() => setViewing(sub)}>
+                        <RiEyeLine className="size-4" />
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1 text-destructive hover:text-destructive" onClick={() => { setDeleting(sub); setDeleteError(null) }}>
-                        <RiDeleteBinLine className="size-4" data-icon="inline-start" />Delete
-                      </Button>
+                      {canViewHistory && (
+                        <Button variant="outline" size="icon-sm" title="View renewal history" onClick={() => setHistoryFor(sub)}>
+                          <RiHistoryLine className="size-4" />
+                        </Button>
+                      )}
+                      {canEdit && (
+                        <Button variant="outline" size="icon-sm" title="Edit" onClick={() => setEditing(sub)}>
+                          <RiEditLine className="size-4" />
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button variant="outline" size="icon-sm" title="Delete" className="text-destructive hover:text-destructive" onClick={() => { setDeleting(sub); setDeleteError(null) }}>
+                          <RiDeleteBinLine className="size-4" />
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>

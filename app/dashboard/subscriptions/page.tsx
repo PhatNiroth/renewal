@@ -25,8 +25,11 @@ export default async function SubscriptionsPage() {
     }),
   ])
 
-  const canEdit = u.isAdmin || u.permissions?.SUBSCRIPTIONS?.edit === true
-  const canAdd  = u.isAdmin || u.permissions?.SUBSCRIPTIONS?.add  === true
+  const canEdit         = u.isAdmin || u.permissions?.SUBSCRIPTIONS?.edit === true
+  const canAdd          = u.isAdmin || u.permissions?.SUBSCRIPTIONS?.add  === true
+  const canDelete       = u.isAdmin || u.permissions?.SUBSCRIPTIONS?.delete === true
+  const canViewHistory  = u.isAdmin || u.permissions?.RENEWALS?.view === true
+  const canMarkRenewed  = u.isAdmin || u.permissions?.RENEWALS?.edit === true
 
   return (
     <SubscriptionsClient
@@ -35,6 +38,9 @@ export default async function SubscriptionsPage() {
       users={users}
       canEdit={!!canEdit}
       canAdd={!!canAdd}
+      canDelete={!!canDelete}
+      canViewHistory={!!canViewHistory}
+      canMarkRenewed={!!canMarkRenewed}
     />
   )
 }

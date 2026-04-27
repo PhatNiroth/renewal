@@ -161,7 +161,6 @@ export async function markAsRenewed(subscriptionId: string): Promise<ActionResul
       }),
     ])
 
-    revalidatePath("/dashboard/renewals")
     revalidatePath("/dashboard/subscriptions")
     revalidatePath("/dashboard")
     return { success: true }

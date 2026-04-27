@@ -10,10 +10,12 @@ export default async function VendorsPage() {
   const u = session.user as { isAdmin?: boolean; permissions?: Record<string, { view?: boolean; add?: boolean; edit?: boolean; delete?: boolean }> }
   if (!u.isAdmin && !u.permissions?.VENDORS?.view) redirect("/dashboard")
 
-  const canAdd             = u.isAdmin || u.permissions?.VENDORS?.add             === true
-  const canEdit            = u.isAdmin || u.permissions?.VENDORS?.edit            === true
-  const canDelete          = u.isAdmin || u.permissions?.VENDORS?.delete          === true
-  const canCreateCategory  = u.isAdmin || u.permissions?.VENDOR_CATEGORIES?.add   === true
+  const canAdd             = u.isAdmin || u.permissions?.VENDORS?.add    === true
+  const canEdit            = u.isAdmin || u.permissions?.VENDORS?.edit   === true
+  const canDelete          = u.isAdmin || u.permissions?.VENDORS?.delete === true
+  // Inline category create lives inside the vendor modal, so it follows the
+  // same permission as creating/editing a vendor.
+  const canCreateCategory  = canAdd || canEdit
 
   const [vendors, categories] = await Promise.all([
     db.vendor.findMany({

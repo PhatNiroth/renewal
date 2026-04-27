@@ -174,7 +174,7 @@ export default async function DashboardPage() {
               <h2 className="font-semibold text-foreground">Upcoming Renewals</h2>
               <p className="text-xs text-muted-foreground mt-0.5">Next 30 days</p>
             </div>
-            <Link href="/dashboard/renewals">
+            <Link href="/dashboard/subscriptions">
               <button className="cursor-pointer inline-flex items-center gap-1 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
                 View all <RiArrowRightLine className="size-3.5" />
               </button>

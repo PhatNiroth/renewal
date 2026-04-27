@@ -7,16 +7,29 @@ import { Input } from "@/components/ui/input"
 import { RiAddLine, RiEditLine, RiDeleteBinLine, RiLoader4Line } from "@remixicon/react"
 import { Modal } from "@/components/ui/modal"
 
-const MODULES = ["SUBSCRIPTIONS", "RENEWALS", "VENDORS", "VENDOR_CATEGORIES"] as const
+const MODULES = ["SUBSCRIPTIONS", "RENEWALS", "VENDORS"] as const
 type ModuleName = typeof MODULES[number]
-type PermMap = Record<ModuleName, { view: boolean; add: boolean; edit: boolean; delete: boolean }>
-const ACTIONS = ["view", "add", "edit", "delete"] as const
+type Action = "view" | "add" | "edit" | "delete"
+type PermMap = Record<ModuleName, Record<Action, boolean>>
+const ACTIONS: readonly Action[] = ["view", "add", "edit", "delete"] as const
 
-const MODULE_LABELS: Record<string, string> = {
-  SUBSCRIPTIONS:    "Subscriptions",
-  RENEWALS:         "Renewals (Upcoming + History)",
-  VENDORS:          "Vendors",
-  VENDOR_CATEGORIES:"Vendor Categories",
+const MODULE_LABELS: Record<ModuleName, string> = {
+  SUBSCRIPTIONS: "Subscriptions",
+  RENEWALS:      "Renewals",
+  VENDORS:       "Vendors",
+}
+
+const MODULE_HINTS: Partial<Record<ModuleName, string>> = {
+  RENEWALS: "Mark renewed + view history",
+  VENDORS:  "Includes inline category create",
+}
+
+// Actions that have an effect for each module. Other action columns are
+// rendered as em-dashes for grid alignment but are not editable.
+const MODULE_ACTIONS: Record<ModuleName, readonly Action[]> = {
+  SUBSCRIPTIONS: ["view", "add", "edit", "delete"],
+  RENEWALS:      ["view", "edit"],
+  VENDORS:       ["view", "add", "edit", "delete"],
 }
 
 function emptyPerms(): PermMap {
@@ -36,7 +49,7 @@ function permsFromApi(permissions: any[]): PermMap {
 type Role = { id: string; name: string; createdAt: string; _count: { users: number }; permissions: any[] }
 
 
-function PermGrid({ perms, onChange }: { perms: PermMap; onChange: (m: ModuleName, a: string, v: boolean) => void }) {
+function PermGrid({ perms, onChange }: { perms: PermMap; onChange: (m: ModuleName, a: Action, v: boolean) => void }) {
   return (
     <div className="rounded-lg border border-border overflow-hidden">
       <table className="w-full text-sm">
@@ -49,21 +62,32 @@ function PermGrid({ perms, onChange }: { perms: PermMap; onChange: (m: ModuleNam
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {MODULES.map(mod => (
-            <tr key={mod} className="hover:bg-muted/20 transition-colors">
-              <td className="px-4 py-2.5 font-medium text-foreground">{MODULE_LABELS[mod]}</td>
-              {ACTIONS.map(action => (
-                <td key={action} className="px-3 py-2.5 text-center">
-                  <input
-                    type="checkbox"
-                    checked={perms[mod][action as keyof PermMap[ModuleName]]}
-                    onChange={e => onChange(mod, action, e.target.checked)}
-                    className="size-4 rounded border-border accent-primary cursor-pointer"
-                  />
+          {MODULES.map(mod => {
+            const allowed = MODULE_ACTIONS[mod]
+            const hint    = MODULE_HINTS[mod]
+            return (
+              <tr key={mod} className="hover:bg-muted/20 transition-colors">
+                <td className="px-4 py-2.5 align-top">
+                  <div className="font-medium text-foreground">{MODULE_LABELS[mod]}</div>
+                  {hint && <div className="text-xs text-muted-foreground/80 mt-0.5">{hint}</div>}
                 </td>
-              ))}
-            </tr>
-          ))}
+                {ACTIONS.map(action => (
+                  <td key={action} className="px-3 py-2.5 text-center align-top">
+                    {allowed.includes(action) ? (
+                      <input
+                        type="checkbox"
+                        checked={perms[mod][action]}
+                        onChange={e => onChange(mod, action, e.target.checked)}
+                        className="size-4 rounded border-border accent-primary cursor-pointer"
+                      />
+                    ) : (
+                      <span className="text-muted-foreground/30" aria-hidden>—</span>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
@@ -105,7 +129,7 @@ export default function AdminRolesPage() {
 
   useEffect(() => { load() }, [load])
 
-  function togglePerm(map: PermMap, setMap: (m: PermMap) => void, mod: ModuleName, action: string, val: boolean) {
+  function togglePerm(map: PermMap, setMap: (m: PermMap) => void, mod: ModuleName, action: Action, val: boolean) {
     const updated = { ...map, [mod]: { ...map[mod], [action]: val } }
     if (action !== "view" && val) updated[mod].view = true
     if (action === "view" && !val) updated[mod] = { view: false, add: false, edit: false, delete: false }
@@ -197,7 +221,7 @@ export default function AdminRolesPage() {
                       <div className="flex flex-wrap gap-1">
                         {MODULES.map(mod => {
                           const p = perms[mod]
-                          const actions = (["view","add","edit","delete"] as const).filter(a => p[a])
+                          const actions = MODULE_ACTIONS[mod].filter(a => p[a])
                           if (actions.length === 0) return (
                             <span key={mod} className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground/50">
                               {MODULE_LABELS[mod]}: none

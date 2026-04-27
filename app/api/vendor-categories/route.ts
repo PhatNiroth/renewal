@@ -1,6 +1,7 @@
 import { db } from "@/lib/db"
 import { auth } from "@/lib/auth"
 import { getPermissions, can } from "@/lib/permissions"
+import { pickAutoColor } from "@/lib/category-colors"
 import { NextResponse } from "next/server"
 
 function toSlug(name: string) {
@@ -38,11 +39,22 @@ export async function POST(req: Request) {
   const { name, color } = body
   if (!name?.trim()) return NextResponse.json({ error: "Name is required" }, { status: 400 })
 
-  const slug = toSlug(name.trim())
+  const trimmed = name.trim()
+  const slug = toSlug(trimmed)
+
+  // Idempotent inline create: if a category with this name (case-insensitive)
+  // or slug already exists, return it instead of erroring.
+  const existing = await db.vendorCategory.findFirst({
+    where: { OR: [{ slug }, { name: { equals: trimmed, mode: "insensitive" } }] },
+    include: { _count: { select: { vendors: true } } },
+  })
+  if (existing) return NextResponse.json(existing)
+
+  const finalColor = color || pickAutoColor(await db.vendorCategory.count())
 
   try {
     const category = await db.vendorCategory.create({
-      data: { name: name.trim(), slug, color: color || "gray" },
+      data: { name: trimmed, slug, color: finalColor },
       include: { _count: { select: { vendors: true } } },
     })
     return NextResponse.json(category, { status: 201 })

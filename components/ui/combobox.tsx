@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { RiArrowDownSLine, RiCloseLine, RiSearchLine } from "@remixicon/react"
+import { RiArrowDownSLine, RiCloseLine, RiSearchLine, RiAddLine, RiLoader4Line } from "@remixicon/react"
 
 export type ComboboxOption = {
   value: string
@@ -23,6 +23,14 @@ type Props = {
   emptyMessage?: string
   allowClear?: boolean
   className?: string
+  /**
+   * If provided, the combobox renders a "+ Create" row when the search query
+   * has no exact (case-insensitive) match in `options`. The handler should
+   * create the new option and resolve to its value (which will be selected),
+   * or null on failure.
+   */
+  onCreate?: (query: string) => Promise<string | null>
+  createLabel?: (query: string) => string
 }
 
 export function Combobox({
@@ -38,12 +46,15 @@ export function Combobox({
   emptyMessage = "No matches.",
   allowClear = true,
   className,
+  onCreate,
+  createLabel = q => `Create "${q}"`,
 }: Props) {
   const isControlled = value !== undefined
   const [internalValue, setInternalValue] = useState(defaultValue ?? "")
   const [isOpen, setIsOpen]               = useState(false)
   const [query, setQuery]                 = useState("")
   const [highlight, setHighlight]         = useState(0)
+  const [creating, setCreating]           = useState(false)
   const wrapRef  = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -58,6 +69,15 @@ export function Combobox({
       return hay.includes(q)
     })
   }, [query, options])
+
+  const trimmedQuery = query.trim()
+  const hasExactMatch = useMemo(() => {
+    if (!trimmedQuery) return false
+    const q = trimmedQuery.toLowerCase()
+    return options.some(o => o.label.toLowerCase() === q)
+  }, [trimmedQuery, options])
+  const showCreateRow = !!onCreate && trimmedQuery.length > 0 && !hasExactMatch
+  const totalRows = filtered.length + (showCreateRow ? 1 : 0)
 
   useEffect(() => {
     if (!isOpen) return
@@ -91,15 +111,30 @@ export function Combobox({
     onChange?.("")
   }
 
+  async function handleCreate() {
+    if (!onCreate || !trimmedQuery || creating) return
+    setCreating(true)
+    try {
+      const newValue = await onCreate(trimmedQuery)
+      if (newValue) pick(newValue)
+    } finally {
+      setCreating(false)
+    }
+  }
+
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "ArrowDown") {
       e.preventDefault()
-      setHighlight(h => Math.min(h + 1, filtered.length - 1))
+      setHighlight(h => Math.min(h + 1, totalRows - 1))
     } else if (e.key === "ArrowUp") {
       e.preventDefault()
       setHighlight(h => Math.max(h - 1, 0))
     } else if (e.key === "Enter") {
       e.preventDefault()
+      if (showCreateRow && highlight === filtered.length) {
+        handleCreate()
+        return
+      }
       const v = filtered[highlight]
       if (v) pick(v.value)
     } else if (e.key === "Escape") {
@@ -151,20 +186,38 @@ export function Combobox({
             />
           </div>
           <ul className="max-h-60 overflow-auto py-1">
-            {filtered.length === 0 ? (
+            {filtered.length === 0 && !showCreateRow ? (
               <li className="px-3 py-2 text-sm text-muted-foreground">{emptyMessage}</li>
-            ) : filtered.map((o, i) => (
-              <li
-                key={o.value}
-                onMouseEnter={() => setHighlight(i)}
-                onClick={() => pick(o.value)}
-                className={`cursor-pointer px-3 py-2 text-sm ${
-                  i === highlight ? "bg-muted text-foreground" : "text-foreground"
-                } ${o.value === selectedValue ? "font-medium" : ""}`}
-              >
-                {o.label}
-              </li>
-            ))}
+            ) : (
+              <>
+                {filtered.map((o, i) => (
+                  <li
+                    key={o.value}
+                    onMouseEnter={() => setHighlight(i)}
+                    onClick={() => pick(o.value)}
+                    className={`cursor-pointer px-3 py-2 text-sm ${
+                      i === highlight ? "bg-muted text-foreground" : "text-foreground"
+                    } ${o.value === selectedValue ? "font-medium" : ""}`}
+                  >
+                    {o.label}
+                  </li>
+                ))}
+                {showCreateRow && (
+                  <li
+                    onMouseEnter={() => setHighlight(filtered.length)}
+                    onClick={handleCreate}
+                    className={`cursor-pointer px-3 py-2 text-sm flex items-center gap-2 border-t border-border text-primary ${
+                      highlight === filtered.length ? "bg-muted" : ""
+                    } ${creating ? "opacity-60 pointer-events-none" : ""}`}
+                  >
+                    {creating
+                      ? <RiLoader4Line className="size-4 animate-spin shrink-0" />
+                      : <RiAddLine className="size-4 shrink-0" />}
+                    <span className="truncate">{createLabel(trimmedQuery)}</span>
+                  </li>
+                )}
+              </>
+            )}
           </ul>
         </div>
       )}

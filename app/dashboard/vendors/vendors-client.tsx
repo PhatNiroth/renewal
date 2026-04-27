@@ -41,7 +41,15 @@ function colorClass(color: string) { return COLOR_CLASSES[color] ?? COLOR_CLASSE
 
 // ─── Vendor form fields ───────────────────────────────────────────────────────
 
-function VendorFields({ categories, defaults }: { categories: CategoryInfo[]; defaults?: Partial<VendorRow> }) {
+function VendorFields({
+  categories,
+  defaults,
+  onCreateCategory,
+}: {
+  categories: CategoryInfo[]
+  defaults?: Partial<VendorRow>
+  onCreateCategory?: (name: string) => Promise<string | null>
+}) {
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
@@ -55,8 +63,10 @@ function VendorFields({ categories, defaults }: { categories: CategoryInfo[]; de
           defaultValue={defaults?.category?.id ?? ""}
           options={categories.map(c => ({ value: c.id, label: c.name }))}
           placeholder="— None —"
-          searchPlaceholder="Search categories…"
+          searchPlaceholder="Search or type a new category…"
           emptyMessage="No categories match."
+          onCreate={onCreateCategory}
+          createLabel={q => `Create "${q}"`}
         />
       </div>
       <div className="space-y-1.5">
@@ -91,7 +101,17 @@ function VendorFields({ categories, defaults }: { categories: CategoryInfo[]; de
 
 // ─── Add modal ────────────────────────────────────────────────────────────────
 
-function AddModal({ categories, onClose, onSuccess }: { categories: CategoryInfo[]; onClose: () => void; onSuccess: () => void }) {
+function AddModal({
+  categories,
+  onClose,
+  onSuccess,
+  onCreateCategory,
+}: {
+  categories: CategoryInfo[]
+  onClose: () => void
+  onSuccess: () => void
+  onCreateCategory?: (name: string) => Promise<string | null>
+}) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -110,7 +130,7 @@ function AddModal({ categories, onClose, onSuccess }: { categories: CategoryInfo
     <Modal title="New Vendor" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
-        <VendorFields categories={categories} />
+        <VendorFields categories={categories} onCreateCategory={onCreateCategory} />
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>Cancel</Button>
           <Button type="submit" disabled={isPending}>
@@ -124,7 +144,19 @@ function AddModal({ categories, onClose, onSuccess }: { categories: CategoryInfo
 
 // ─── Edit modal ───────────────────────────────────────────────────────────────
 
-function EditModal({ vendor, categories, onClose, onSuccess }: { vendor: VendorRow; categories: CategoryInfo[]; onClose: () => void; onSuccess: () => void }) {
+function EditModal({
+  vendor,
+  categories,
+  onClose,
+  onSuccess,
+  onCreateCategory,
+}: {
+  vendor: VendorRow
+  categories: CategoryInfo[]
+  onClose: () => void
+  onSuccess: () => void
+  onCreateCategory?: (name: string) => Promise<string | null>
+}) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -143,7 +175,7 @@ function EditModal({ vendor, categories, onClose, onSuccess }: { vendor: VendorR
     <Modal title={`Edit: ${vendor.name}`} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
-        <VendorFields categories={categories} defaults={vendor} />
+        <VendorFields categories={categories} defaults={vendor} onCreateCategory={onCreateCategory} />
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>Cancel</Button>
           <Button type="submit" disabled={isPending}>
@@ -196,18 +228,21 @@ function DeleteModal({ vendor, onClose, onSuccess }: { vendor: VendorRow; onClos
 
 export default function VendorsClient({
   vendors,
-  categories,
+  categories: initialCategories,
   canAdd,
   canEdit,
   canDelete,
+  canCreateCategory,
 }: {
   vendors: VendorRow[]
   categories: CategoryInfo[]
   canAdd: boolean
   canEdit: boolean
   canDelete: boolean
+  canCreateCategory: boolean
 }) {
   const router = useRouter()
+  const [categories, setCategories] = useState<CategoryInfo[]>(initialCategories)
   const [showAdd, setShowAdd]       = useState(false)
   const [editing, setEditing]       = useState<VendorRow | null>(null)
   const [deleting, setDeleting]     = useState<VendorRow | null>(null)
@@ -222,10 +257,32 @@ export default function VendorsClient({
 
   function reload() { router.refresh() }
 
+  const onCreateCategory = canCreateCategory
+    ? async (name: string): Promise<string | null> => {
+        const res = await fetch("/api/vendor-categories", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        })
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}))
+          toast.error(j.error ?? "Failed to create category")
+          return null
+        }
+        const cat: CategoryInfo = await res.json()
+        setCategories(prev => {
+          if (prev.some(c => c.id === cat.id)) return prev
+          return [...prev, cat].sort((a, b) => a.name.localeCompare(b.name))
+        })
+        toast.success(`Category "${cat.name}" added`)
+        return cat.id
+      }
+    : undefined
+
   return (
     <>
-      {showAdd  && <AddModal    categories={categories} onClose={() => setShowAdd(false)} onSuccess={reload} />}
-      {editing  && <EditModal   vendor={editing}  categories={categories} onClose={() => setEditing(null)}  onSuccess={reload} />}
+      {showAdd  && <AddModal    categories={categories} onClose={() => setShowAdd(false)} onSuccess={reload} onCreateCategory={onCreateCategory} />}
+      {editing  && <EditModal   vendor={editing}  categories={categories} onClose={() => setEditing(null)}  onSuccess={reload} onCreateCategory={onCreateCategory} />}
       {deleting && <DeleteModal vendor={deleting} onClose={() => setDeleting(null)} onSuccess={reload} />}
 
       <div className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6">

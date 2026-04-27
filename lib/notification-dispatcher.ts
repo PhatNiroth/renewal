@@ -46,10 +46,22 @@ function buildEmailHtml(headline: string, preheader: string, bodyText: string, a
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const NOTIFY_WINDOWS = [
-  { days: 7, type: NotifType.RENEWAL_REMINDER_7_DAYS, prefKey: "renewal7d" as const },
-  { days: 3, type: NotifType.RENEWAL_REMINDER_3_DAYS, prefKey: "renewal3d" as const },
-  { days: 1, type: NotifType.RENEWAL_REMINDER_1_DAY,  prefKey: "renewal1d" as const },
+type NotifyWindow = {
+  days: number
+  type: NotifType
+  /** User-level NotificationPref toggle. null for opt-in long-lead reminders, which are always sent when configured. */
+  prefKey: "renewal7d" | "renewal3d" | "renewal1d" | null
+  /** When true, only fires for subs that opted in via NotificationConfig. */
+  requiresConfig: boolean
+}
+
+const NOTIFY_WINDOWS: NotifyWindow[] = [
+  { days: 90, type: NotifType.RENEWAL_REMINDER_90_DAYS, prefKey: null,        requiresConfig: true  },
+  { days: 30, type: NotifType.RENEWAL_REMINDER_30_DAYS, prefKey: null,        requiresConfig: true  },
+  { days: 14, type: NotifType.RENEWAL_REMINDER_14_DAYS, prefKey: null,        requiresConfig: true  },
+  { days: 7,  type: NotifType.RENEWAL_REMINDER_7_DAYS,  prefKey: "renewal7d", requiresConfig: false },
+  { days: 3,  type: NotifType.RENEWAL_REMINDER_3_DAYS,  prefKey: "renewal3d", requiresConfig: false },
+  { days: 1,  type: NotifType.RENEWAL_REMINDER_1_DAY,   prefKey: "renewal1d", requiresConfig: false },
 ]
 
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
@@ -120,7 +132,7 @@ export async function runNotificationDispatcher(): Promise<DispatchResult> {
     select: { id: true, name: true, email: true },
   })
 
-  for (const { days, type, prefKey } of NOTIFY_WINDOWS) {
+  for (const { days, type, prefKey, requiresConfig } of NOTIFY_WINDOWS) {
     const targetDate = addDays(now, days)
     const from = startOfDay(targetDate)
     const to   = endOfDay(targetDate)
@@ -130,6 +142,7 @@ export async function runNotificationDispatcher(): Promise<DispatchResult> {
         renewalDate: { gte: from, lte: to },
         status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.EXPIRING_SOON] },
         autoRenew: false,
+        ...(requiresConfig ? { notificationConfigs: { some: { daysBefore: days } } } : {}),
       },
       include: {
         vendor:      { include: { category: true } },
@@ -155,7 +168,8 @@ export async function runNotificationDispatcher(): Promise<DispatchResult> {
 
       if (sub.responsible) {
         const pref    = sub.responsible.notificationPref
-        const enabled = pref ? pref[prefKey] : true   // default true if no pref row
+        // Long-lead opt-in reminders (prefKey null) skip per-user toggles — they're already opt-in at the sub level.
+        const enabled = prefKey === null ? true : (pref ? pref[prefKey] : true)
         if (enabled) {
           recipients.push({
             id:    sub.responsible.id,

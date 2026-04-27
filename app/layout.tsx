@@ -1,10 +1,12 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
-import Script from "next/script"
 import "./globals.css"
 import { cn } from "@/lib/utils"
 import Providers from "./providers"
 import { Toaster } from "react-hot-toast"
+
+// Runs before React hydrates so the dark-theme class is set without a flash of the wrong theme.
+const themeInitScript = `(function(){try{var s=localStorage.getItem('theme');var d=s?s==='dark':window.matchMedia('(prefers-color-scheme:dark)').matches;if(d)document.documentElement.classList.add('dark')}catch(e){}})()`
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -26,10 +28,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={cn("h-full antialiased", geistSans.variable, geistMono.variable, "font-sans")} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
-        <Script id="theme-init" strategy="beforeInteractive">
-          {`(function(){try{var s=localStorage.getItem('theme');var d=s?s==='dark':window.matchMedia('(prefers-color-scheme:dark)').matches;if(d)document.documentElement.classList.add('dark')}catch(e){}})()`}
-        </Script>
         <Providers>{children}</Providers>
         <Toaster position="top-right" toastOptions={{ style: { borderRadius: "8px", fontSize: "14px" } }} />
       </body>

@@ -14,25 +14,48 @@ function getUser(session: { user?: SessionUser } | null): SessionUser | undefine
   return session?.user as SessionUser | undefined
 }
 
+const ALLOWED_EXTRA_REMINDERS = [90, 30, 14] as const
+
+function parseExtraReminders(values: (FormDataEntryValue | string | number)[]): number[] {
+  const seen = new Set<number>()
+  for (const v of values) {
+    const n = typeof v === "number" ? v : parseInt(String(v))
+    if (Number.isFinite(n) && (ALLOWED_EXTRA_REMINDERS as readonly number[]).includes(n)) seen.add(n)
+  }
+  return [...seen]
+}
+
+async function syncExtraReminders(subscriptionId: string, daysList: number[]) {
+  await db.notificationConfig.deleteMany({
+    where: { subscriptionId, daysBefore: { in: ALLOWED_EXTRA_REMINDERS as unknown as number[] } },
+  })
+  if (daysList.length > 0) {
+    await db.notificationConfig.createMany({
+      data: daysList.map(daysBefore => ({ subscriptionId, daysBefore })),
+    })
+  }
+}
+
 export async function createSubscription(formData: FormData): Promise<ActionResult> {
   const session = await auth()
   const u = getUser(session)
   if (!u) return { error: "Unauthorized" }
   if (!u.isAdmin && !u.permissions?.SUBSCRIPTIONS?.add) return { error: "Forbidden" }
 
-  const vendorId      = formData.get("vendorId") as string
-  const planName      = formData.get("planName") as string
-  const departmentRaw = formData.get("department") as string | null
-  const department    = (departmentRaw && departmentRaw in Department) ? departmentRaw as Department : null
-  const cost          = formData.get("cost") as string
-  const billingCycle  = (formData.get("billingCycle") as BillingCycle) || "MONTHLY"
-  const customDays    = formData.get("customDays") as string | null
-  const startDate     = formData.get("startDate") as string
-  const renewalDate   = formData.get("renewalDate") as string
-  const responsibleId = formData.get("responsibleId") as string | null
-  const notes         = formData.get("notes") as string | null
-  const documentPath  = formData.get("documentPath") as string | null
-  const autoRenew     = formData.get("autoRenew") === "on" || formData.get("autoRenew") === "true"
+  const vendorId        = formData.get("vendorId") as string
+  const planName        = formData.get("planName") as string
+  const departmentRaw   = formData.get("department") as string | null
+  const department      = (departmentRaw && departmentRaw in Department) ? departmentRaw as Department : null
+  const cost            = formData.get("cost") as string
+  const billingCycle    = (formData.get("billingCycle") as BillingCycle) || "MONTHLY"
+  const customDays      = formData.get("customDays") as string | null
+  const startDate       = formData.get("startDate") as string
+  const renewalDate     = formData.get("renewalDate") as string
+  const responsibleId   = formData.get("responsibleId") as string | null
+  const paymentMethodId = formData.get("paymentMethodId") as string | null
+  const notes           = formData.get("notes") as string | null
+  const documentPath    = formData.get("documentPath") as string | null
+  const autoRenew       = formData.get("autoRenew") === "on" || formData.get("autoRenew") === "true"
 
   if (!vendorId)    return { error: "Vendor is required" }
   if (!planName)    return { error: "Plan / service name is required" }
@@ -44,24 +67,28 @@ export async function createSubscription(formData: FormData): Promise<ActionResu
   const costCents = cost ? Math.round(parseFloat(cost) * 100) : 0
   if (isNaN(costCents) || costCents < 0) return { error: "Invalid cost amount" }
 
+  const extraReminders = parseExtraReminders(formData.getAll("extraReminders"))
+
   try {
-    await db.subscription.create({
+    const created = await db.subscription.create({
       data: {
         vendorId,
         planName,
-        department:    department || null,
-        cost:          costCents,
+        department:      department || null,
+        cost:            costCents,
         billingCycle,
-        customDays:    billingCycle === "CUSTOM" && customDays ? parseInt(customDays) : null,
-        startDate:     new Date(startDate),
-        renewalDate:   new Date(renewalDate),
-        status:        SubscriptionStatus.ACTIVE,
-        responsibleId: responsibleId || null,
-        notes:         notes || null,
-        documentPath:  documentPath || null,
+        customDays:      billingCycle === "CUSTOM" && customDays ? parseInt(customDays) : null,
+        startDate:       new Date(startDate),
+        renewalDate:     new Date(renewalDate),
+        status:          SubscriptionStatus.ACTIVE,
+        responsibleId:   responsibleId   || null,
+        paymentMethodId: paymentMethodId || null,
+        notes:           notes           || null,
+        documentPath:    documentPath    || null,
         autoRenew,
       },
     })
+    if (extraReminders.length > 0) await syncExtraReminders(created.id, extraReminders)
     revalidatePath("/dashboard/subscriptions")
     revalidatePath("/dashboard")
     return { success: true }
@@ -83,9 +110,11 @@ export async function updateSubscription(
     renewalDate: Date
     status: SubscriptionStatus
     responsibleId: string | null
+    paymentMethodId: string | null
     notes: string | null
     documentPath: string | null
     autoRenew: boolean
+    extraReminders: number[]
   }>
 ): Promise<ActionResult> {
   const session = await auth()
@@ -97,8 +126,13 @@ export async function updateSubscription(
     return { error: "Renewal date must be after start date" }
   }
 
+  const { extraReminders, ...rest } = data
+
   try {
-    await db.subscription.update({ where: { id: subscriptionId }, data })
+    await db.subscription.update({ where: { id: subscriptionId }, data: rest })
+    if (extraReminders !== undefined) {
+      await syncExtraReminders(subscriptionId, parseExtraReminders(extraReminders))
+    }
     revalidatePath("/dashboard/subscriptions")
     revalidatePath("/dashboard")
     return { success: true }

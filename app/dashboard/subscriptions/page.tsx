@@ -10,9 +10,9 @@ export default async function SubscriptionsPage() {
   const u = session.user as { isAdmin?: boolean; permissions?: Record<string, { view?: boolean; add?: boolean; edit?: boolean; delete?: boolean }> }
   if (!u.isAdmin && !u.permissions?.SUBSCRIPTIONS?.view) redirect("/dashboard")
 
-  const [subscriptions, vendors, users] = await Promise.all([
+  const [subscriptions, vendors, users, paymentMethods] = await Promise.all([
     db.subscription.findMany({
-      include: { vendor: true, responsible: true },
+      include: { vendor: true, responsible: true, notificationConfigs: true, paymentMethod: true },
       orderBy: { renewalDate: "asc" },
     }),
     db.vendor.findMany({
@@ -23,6 +23,10 @@ export default async function SubscriptionsPage() {
       select: { id: true, name: true, email: true },
       orderBy: { name: "asc" },
     }),
+    db.paymentMethod.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+    }),
   ])
 
   const canEdit         = u.isAdmin || u.permissions?.SUBSCRIPTIONS?.edit === true
@@ -30,17 +34,20 @@ export default async function SubscriptionsPage() {
   const canDelete       = u.isAdmin || u.permissions?.SUBSCRIPTIONS?.delete === true
   const canViewHistory  = u.isAdmin || u.permissions?.RENEWALS?.view === true
   const canMarkRenewed  = u.isAdmin || u.permissions?.RENEWALS?.edit === true
+  const canCreatePaymentMethod = canAdd || canEdit
 
   return (
     <SubscriptionsClient
       subscriptions={subscriptions}
       vendors={vendors}
       users={users}
+      paymentMethods={paymentMethods}
       canEdit={!!canEdit}
       canAdd={!!canAdd}
       canDelete={!!canDelete}
       canViewHistory={!!canViewHistory}
       canMarkRenewed={!!canMarkRenewed}
+      canCreatePaymentMethod={!!canCreatePaymentMethod}
     />
   )
 }

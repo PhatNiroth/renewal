@@ -15,9 +15,97 @@ import { Modal } from "@/components/ui/modal"
 import { Combobox } from "@/components/ui/combobox"
 import { createSubscription, updateSubscription, deleteSubscription, markAsRenewed } from "@/app/actions/subscriptions"
 import { toast } from "react-hot-toast"
-import type { Subscription, Vendor, User } from "@prisma/client"
+import type { Subscription, Vendor, User, NotificationConfig, PaymentMethod } from "@prisma/client"
+import { formatPaymentMethod, PAYMENT_METHOD_TYPE_LABELS } from "@/lib/payment-method-utils"
 
-type SubscriptionFull = Subscription & { vendor: Vendor; responsible: User | null }
+type PaymentMethodCreator = (name: string) => Promise<string | null>
+
+type SubscriptionFull = Subscription & {
+  vendor: Vendor
+  responsible: User | null
+  notificationConfigs: NotificationConfig[]
+  paymentMethod: PaymentMethod | null
+}
+
+// ─── Reminder chips ───────────────────────────────────────────────────────────
+
+const EXTRA_REMINDER_OPTIONS = [
+  { days: 90, label: "3 months" },
+  { days: 30, label: "1 month"  },
+  { days: 14, label: "2 weeks"  },
+] as const
+
+function availableReminderDays(cycle: string, customDays: number | null, renewalDateStr: string): number[] {
+  if (cycle === "MONTHLY") return []
+  if (cycle === "QUARTERLY" || cycle === "SEMESTER" || cycle === "YEARLY") {
+    return EXTRA_REMINDER_OPTIONS.map(o => o.days)
+  }
+  if (cycle === "CUSTOM") {
+    if (!customDays || customDays <= 14) return []
+    return EXTRA_REMINDER_OPTIONS.filter(o => o.days < customDays).map(o => o.days)
+  }
+  if (cycle === "ONE_TIME") {
+    if (!renewalDateStr) return []
+    const days = Math.ceil((new Date(renewalDateStr).getTime() - Date.now()) / 86_400_000)
+    if (days <= 14) return []
+    return EXTRA_REMINDER_OPTIONS.filter(o => o.days < days).map(o => o.days)
+  }
+  return []
+}
+
+function ReminderChips({
+  cycle,
+  customDays,
+  renewalDateStr,
+  selected,
+  setSelected,
+}: {
+  cycle: string
+  customDays: string
+  renewalDateStr: string
+  selected: number[]
+  setSelected: (next: number[]) => void
+}) {
+  const cd = customDays ? parseInt(customDays) : null
+  const allowed = availableReminderDays(cycle, cd, renewalDateStr)
+  if (allowed.length === 0) return null
+
+  function toggle(d: number) {
+    setSelected(selected.includes(d) ? selected.filter(x => x !== d) : [...selected, d].sort((a, b) => b - a))
+  }
+
+  return (
+    <div className="col-span-2 space-y-1.5">
+      <label className="text-sm font-medium text-foreground">Reminder schedule <span className="text-xs font-normal text-muted-foreground">(optional)</span></label>
+      <div className="flex flex-wrap gap-2">
+        {EXTRA_REMINDER_OPTIONS.map(opt => {
+          const valid    = allowed.includes(opt.days)
+          if (!valid) return null
+          const checked  = selected.includes(opt.days)
+          return (
+            <label
+              key={opt.days}
+              className={`cursor-pointer inline-flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-xs font-medium transition-colors ${
+                checked ? "bg-primary text-white border-primary" : "bg-background text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              <input
+                type="checkbox"
+                name="extraReminders"
+                value={opt.days}
+                checked={checked}
+                onChange={() => toggle(opt.days)}
+                className="hidden"
+              />
+              {opt.label} before
+            </label>
+          )
+        })}
+      </div>
+      <p className="text-xs text-muted-foreground">7-day, 3-day, and 1-day reminders are sent automatically — these are extra long-lead reminders for cycles longer than a month.</p>
+    </div>
+  )
+}
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -109,11 +197,15 @@ function computeRenewalDate(startIso: string, cycle: string, customDays: number 
 function AddSubscriptionModal({
   vendors,
   users,
+  paymentMethods,
+  onCreatePaymentMethod,
   onClose,
   onSuccess,
 }: {
   vendors: Vendor[]
   users: Pick<User, "id" | "name" | "email">[]
+  paymentMethods: PaymentMethod[]
+  onCreatePaymentMethod?: PaymentMethodCreator
   onClose: () => void
   onSuccess: () => void
 }) {
@@ -124,6 +216,7 @@ function AddSubscriptionModal({
   const [billingCycle, setBillingCycle] = useState<string>("MONTHLY")
   const [customDays, setCustomDays]     = useState("")
   const [renewalDate, setRenewalDate]   = useState("")
+  const [extraReminders, setExtraReminders] = useState<number[]>([])
 
   useEffect(() => {
     const t = new Date().toISOString().split("T")[0]
@@ -235,6 +328,19 @@ function AddSubscriptionModal({
           </div>
 
           <div className="col-span-2 space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Payment Method</label>
+            <Combobox
+              name="paymentMethodId"
+              options={paymentMethods.map(pm => ({ value: pm.id, label: formatPaymentMethod(pm) }))}
+              placeholder="— None —"
+              searchPlaceholder={onCreatePaymentMethod ? "Search or type a new payment method…" : "Search payment methods…"}
+              emptyMessage="No payment methods match."
+              onCreate={onCreatePaymentMethod}
+              createLabel={q => `Create "${q}"`}
+            />
+          </div>
+
+          <div className="col-span-2 space-y-1.5">
             <label className="text-sm font-medium text-foreground">Document Location</label>
             <Input name="documentPath" placeholder="e.g. https://nextcloud.krawma.com/IT/contracts/adobe.pdf or IT/contracts/adobe.pdf" />
             <p className="text-xs text-muted-foreground">URL or path to the contract/document in Nextcloud or other storage.</p>
@@ -252,6 +358,14 @@ function AddSubscriptionModal({
               <span className="block text-xs text-muted-foreground">Skip reminder emails — the vendor renews this automatically.</span>
             </label>
           </div>
+
+          <ReminderChips
+            cycle={billingCycle}
+            customDays={customDays}
+            renewalDateStr={renewalDate}
+            selected={extraReminders}
+            setSelected={setExtraReminders}
+          />
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
@@ -270,11 +384,15 @@ function AddSubscriptionModal({
 function EditSubscriptionModal({
   sub,
   users,
+  paymentMethods,
+  onCreatePaymentMethod,
   onClose,
   onSuccess,
 }: {
   sub: SubscriptionFull
   users: Pick<User, "id" | "name" | "email">[]
+  paymentMethods: PaymentMethod[]
+  onCreatePaymentMethod?: PaymentMethodCreator
   onClose: () => void
   onSuccess: () => void
 }) {
@@ -284,6 +402,12 @@ function EditSubscriptionModal({
   const [billingCycle, setBillingCycle] = useState<string>(sub.billingCycle)
   const [customDays, setCustomDays]     = useState(sub.customDays?.toString() ?? "")
   const [renewalDate, setRenewalDate]   = useState(toInput(sub.renewalDate))
+  const [extraReminders, setExtraReminders] = useState<number[]>(
+    sub.notificationConfigs
+      .map(c => c.daysBefore)
+      .filter(d => EXTRA_REMINDER_OPTIONS.some(o => o.days === d))
+      .sort((a, b) => b - a)
+  )
 
   const recalcRenewal = (sd: string, cycle: string, days: string) => {
     const n = days ? parseInt(days) : null
@@ -305,18 +429,20 @@ function EditSubscriptionModal({
     startTransition(async () => {
       const deptVal = fd.get("department") as string
       const result = await updateSubscription(sub.id, {
-        planName:      fd.get("planName") as string,
-        department:    (deptVal || null) as import("@prisma/client").Department | null,
-        cost:          costCents,
-        billingCycle:  cycle,
-        customDays:    cycle === "CUSTOM" && customDays ? parseInt(customDays) : null,
-        startDate:     new Date(startDate),
-        renewalDate:   new Date(renewalDate),
-        status:        fd.get("status") as "ACTIVE" | "EXPIRING_SOON" | "EXPIRED" | "CANCELLED",
-        responsibleId: (fd.get("responsibleId") as string) || null,
-        notes:         (fd.get("notes") as string) || null,
-        documentPath:  (fd.get("documentPath") as string) || null,
-        autoRenew:     fd.get("autoRenew") === "on",
+        planName:        fd.get("planName") as string,
+        department:      (deptVal || null) as import("@prisma/client").Department | null,
+        cost:            costCents,
+        billingCycle:    cycle,
+        customDays:      cycle === "CUSTOM" && customDays ? parseInt(customDays) : null,
+        startDate:       new Date(startDate),
+        renewalDate:     new Date(renewalDate),
+        status:          fd.get("status") as "ACTIVE" | "EXPIRING_SOON" | "EXPIRED" | "CANCELLED",
+        responsibleId:   (fd.get("responsibleId") as string) || null,
+        paymentMethodId: (fd.get("paymentMethodId") as string) || null,
+        notes:           (fd.get("notes") as string) || null,
+        documentPath:    (fd.get("documentPath") as string) || null,
+        autoRenew:       fd.get("autoRenew") === "on",
+        extraReminders,
       })
       if ("error" in result) { setError(result.error); toast.error("Failed to save changes") }
       else { toast.success("Changes saved"); onSuccess(); onClose() }
@@ -404,6 +530,20 @@ function EditSubscriptionModal({
           </div>
 
           <div className="col-span-2 space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Payment Method</label>
+            <Combobox
+              name="paymentMethodId"
+              defaultValue={sub.paymentMethodId ?? ""}
+              options={paymentMethods.map(pm => ({ value: pm.id, label: formatPaymentMethod(pm) }))}
+              placeholder="— None —"
+              searchPlaceholder={onCreatePaymentMethod ? "Search or type a new payment method…" : "Search payment methods…"}
+              emptyMessage="No payment methods match."
+              onCreate={onCreatePaymentMethod}
+              createLabel={q => `Create "${q}"`}
+            />
+          </div>
+
+          <div className="col-span-2 space-y-1.5">
             <label className="text-sm font-medium text-foreground">Document Location</label>
             <Input name="documentPath" defaultValue={sub.documentPath ?? ""} placeholder="e.g. https://nextcloud.krawma.com/IT/contracts/adobe.pdf or IT/contracts/adobe.pdf" />
             <p className="text-xs text-muted-foreground">URL or path to the contract/document in Nextcloud or other storage.</p>
@@ -421,6 +561,14 @@ function EditSubscriptionModal({
               <span className="block text-xs text-muted-foreground">Skip reminder emails — the vendor renews this automatically.</span>
             </label>
           </div>
+
+          <ReminderChips
+            cycle={billingCycle}
+            customDays={customDays}
+            renewalDateStr={renewalDate}
+            selected={extraReminders}
+            setSelected={setExtraReminders}
+          />
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
@@ -456,6 +604,19 @@ function DetailsModal({ sub, onClose }: { sub: SubscriptionFull; onClose: () => 
     { label: "Renewal Date",  value: fmtDate(sub.renewalDate) },
     { label: "Auto-renew",    value: sub.autoRenew ? "Yes" : "No" },
     { label: "Responsible",   value: sub.responsible?.name ?? sub.responsible?.email ?? "—" },
+    {
+      label: "Payment",
+      value: sub.paymentMethod
+        ? (
+          <span className="inline-flex items-center gap-1.5">
+            <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              {PAYMENT_METHOD_TYPE_LABELS[sub.paymentMethod.type] ?? sub.paymentMethod.type}
+            </span>
+            {formatPaymentMethod(sub.paymentMethod)}
+          </span>
+        )
+        : "—",
+    },
     { label: "Notes",         value: sub.notes ?? "—" },
   ]
 
@@ -570,21 +731,26 @@ export default function SubscriptionsClient({
   subscriptions,
   vendors,
   users,
+  paymentMethods: initialPaymentMethods,
   canEdit,
   canAdd,
   canDelete,
   canViewHistory,
   canMarkRenewed,
+  canCreatePaymentMethod,
 }: {
   subscriptions: SubscriptionFull[]
   vendors: Vendor[]
   users: Pick<User, "id" | "name" | "email">[]
+  paymentMethods: PaymentMethod[]
   canEdit: boolean
   canAdd: boolean
   canDelete: boolean
   canViewHistory: boolean
   canMarkRenewed: boolean
+  canCreatePaymentMethod: boolean
 }) {
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(initialPaymentMethods)
   const router = useRouter()
   const [search, setSearch]               = useState("")
   const [renewalFilter, setRenewalFilter] = useState<RenewalFilter>("ALL")
@@ -604,6 +770,28 @@ export default function SubscriptionsClient({
 
   // Always shown — View details is available to anyone who can see the table
   const showActionsCol = true
+
+  const onCreatePaymentMethod: PaymentMethodCreator | undefined = canCreatePaymentMethod
+    ? async (name: string) => {
+        const res = await fetch("/api/payment-methods", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        })
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}))
+          toast.error(j.error ?? "Failed to create payment method")
+          return null
+        }
+        const pm: PaymentMethod = await res.json()
+        setPaymentMethods(prev => {
+          if (prev.some(p => p.id === pm.id)) return prev
+          return [...prev, pm].sort((a, b) => a.name.localeCompare(b.name))
+        })
+        toast.success(`Payment method "${pm.name}" added`)
+        return pm.id
+      }
+    : undefined
 
   const toggleSort = (key: typeof sortKey) => {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc")
@@ -668,6 +856,8 @@ export default function SubscriptionsClient({
         <AddSubscriptionModal
           vendors={vendors}
           users={users}
+          paymentMethods={paymentMethods}
+          onCreatePaymentMethod={onCreatePaymentMethod}
           onClose={() => setShowModal(false)}
           onSuccess={() => router.refresh()}
         />
@@ -677,6 +867,8 @@ export default function SubscriptionsClient({
         <EditSubscriptionModal
           sub={editing}
           users={users}
+          paymentMethods={paymentMethods}
+          onCreatePaymentMethod={onCreatePaymentMethod}
           onClose={() => setEditing(null)}
           onSuccess={() => router.refresh()}
         />

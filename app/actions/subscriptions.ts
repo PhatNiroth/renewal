@@ -3,8 +3,15 @@
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
-import { BillingCycle, Department, SubscriptionStatus } from "@prisma/client"
+import { BillingCycle, Department, SubscriptionStatus, SubscriptionKind } from "@prisma/client"
 import { nextRenewalDate } from "@/lib/renewal-utils"
+
+const VALID_KINDS = ["SUBSCRIPTION", "MEMBERSHIP", "CARD", "CONTRACT", "LEASE", "LICENSE", "OTHER"] as const
+function parseKind(raw: string | null): SubscriptionKind {
+  return raw && (VALID_KINDS as readonly string[]).includes(raw)
+    ? (raw as SubscriptionKind)
+    : ("SUBSCRIPTION" as SubscriptionKind)
+}
 
 type ActionResult = { error: string } | { success: true }
 
@@ -44,6 +51,7 @@ export async function createSubscription(formData: FormData): Promise<ActionResu
 
   const vendorId        = formData.get("vendorId") as string
   const planName        = formData.get("planName") as string
+  const kind            = parseKind(formData.get("kind") as string | null)
   const departmentRaw   = formData.get("department") as string | null
   const department      = (departmentRaw && departmentRaw in Department) ? departmentRaw as Department : null
   const cost            = formData.get("cost") as string
@@ -56,6 +64,12 @@ export async function createSubscription(formData: FormData): Promise<ActionResu
   const notes           = formData.get("notes") as string | null
   const documentPath    = formData.get("documentPath") as string | null
   const autoRenew       = formData.get("autoRenew") === "on" || formData.get("autoRenew") === "true"
+  const cardBrandRaw    = formData.get("cardBrand") as string | null
+  const cardLast4Raw    = formData.get("cardLast4") as string | null
+  const cardBrand       = kind === "CARD" && cardBrandRaw?.trim() ? cardBrandRaw.trim().slice(0, 50) : null
+  const cardLast4       = kind === "CARD" && cardLast4Raw?.trim() ? cardLast4Raw.trim() : null
+
+  if (cardLast4 && !/^\d{4}$/.test(cardLast4)) return { error: "Card last 4 must be exactly 4 digits" }
 
   if (!vendorId)    return { error: "Vendor is required" }
   if (!planName)    return { error: "Plan / service name is required" }
@@ -74,6 +88,7 @@ export async function createSubscription(formData: FormData): Promise<ActionResu
       data: {
         vendorId,
         planName,
+        kind,
         department:      department || null,
         cost:            costCents,
         billingCycle,
@@ -86,6 +101,8 @@ export async function createSubscription(formData: FormData): Promise<ActionResu
         notes:           notes           || null,
         documentPath:    documentPath    || null,
         autoRenew,
+        cardBrand,
+        cardLast4,
       },
     })
     if (extraReminders.length > 0) await syncExtraReminders(created.id, extraReminders)
@@ -102,6 +119,7 @@ export async function updateSubscription(
   subscriptionId: string,
   data: Partial<{
     planName: string
+    kind: SubscriptionKind
     department: Department | null
     cost: number
     billingCycle: BillingCycle
@@ -114,6 +132,8 @@ export async function updateSubscription(
     notes: string | null
     documentPath: string | null
     autoRenew: boolean
+    cardBrand: string | null
+    cardLast4: string | null
     extraReminders: number[]
   }>
 ): Promise<ActionResult> {
@@ -124,6 +144,9 @@ export async function updateSubscription(
 
   if (data.startDate && data.renewalDate && data.renewalDate <= data.startDate) {
     return { error: "Renewal date must be after start date" }
+  }
+  if (data.cardLast4 && !/^\d{4}$/.test(data.cardLast4)) {
+    return { error: "Card last 4 must be exactly 4 digits" }
   }
 
   const { extraReminders, ...rest } = data

@@ -118,6 +118,7 @@ model Subscription {
   id            String             @id @default(cuid())
   vendorId      String
   planName      String
+  kind          SubscriptionKind   @default(SUBSCRIPTION)
   department    Department?
   cost          Int                // in cents
   currency      String             @default("usd")
@@ -127,6 +128,9 @@ model Subscription {
   renewalDate   DateTime
   status        SubscriptionStatus @default(ACTIVE)
   autoRenew     Boolean            @default(false)
+  // Card fields — only used when kind = CARD. Last 4 ONLY, never full PAN.
+  cardBrand     String?
+  cardLast4     String?
   responsibleId   String?
   paymentMethodId String?
   notes           String?
@@ -277,6 +281,16 @@ enum SubscriptionStatus {
   EXPIRING_SOON
   EXPIRED
   CANCELLED
+}
+
+enum SubscriptionKind {
+  SUBSCRIPTION
+  MEMBERSHIP
+  CARD
+  CONTRACT
+  LEASE
+  LICENSE
+  OTHER
 }
 
 enum NotifChannel {

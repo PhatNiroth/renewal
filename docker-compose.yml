@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:16
+    image: postgres:16-alpine
     container_name: krawma_db
     restart: unless-stopped
     environment:
@@ -11,6 +11,11 @@ services:
       - "5436:5432"
     volumes:
       - krawma_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d krawma"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   krawma_db_data:

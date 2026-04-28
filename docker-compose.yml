@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: krawma_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: krawma
+    ports:
+      - "5436:5432"
+    volumes:
+      - krawma_db_data:/var/lib/postgresql/data
+
+volumes:
+  krawma_db_data:

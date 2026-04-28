@@ -4,6 +4,7 @@ import "./globals.css"
 import { cn } from "@/lib/utils"
 import Providers from "./providers"
 import { Toaster } from "react-hot-toast"
+import Script from "next/script"
 
 // Runs before React hydrates so the dark-theme class is set without a flash of the wrong theme.
 const themeInitScript = `(function(){try{var s=localStorage.getItem('theme');var d=s?s==='dark':window.matchMedia('(prefers-color-scheme:dark)').matches;if(d)document.documentElement.classList.add('dark')}catch(e){}})()`
@@ -29,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("h-full antialiased", geistSans.variable, geistMono.variable, "font-sans")} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <Script id="theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <Providers>{children}</Providers>

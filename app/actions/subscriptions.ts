@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache"
 import { BillingCycle, Department, SubscriptionStatus, SubscriptionKind } from "@prisma/client"
 import { nextRenewalDate } from "@/lib/renewal-utils"
 
-const VALID_KINDS = ["SUBSCRIPTION", "MEMBERSHIP", "CARD", "CONTRACT", "LEASE", "LICENSE", "OTHER"] as const
+const VALID_KINDS = ["SUBSCRIPTION", "MEMBERSHIP", "CARD", "CONTRACT", "LEASE", "LICENSE", "INSURANCE", "DOMAIN", "PERMIT", "OTHER"] as const
 function parseKind(raw: string | null): SubscriptionKind {
   return raw && (VALID_KINDS as readonly string[]).includes(raw)
     ? (raw as SubscriptionKind)

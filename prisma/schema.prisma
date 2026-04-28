@@ -290,6 +290,9 @@ enum SubscriptionKind {
   CONTRACT
   LEASE
   LICENSE
+  INSURANCE
+  DOMAIN
+  PERMIT
   OTHER
 }
 

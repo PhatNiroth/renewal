@@ -87,15 +87,36 @@ export async function syncSubscriptionStatuses(): Promise<void> {
       billingCycle: { not: BillingCycle.ONE_TIME },
     },
   })
+
+  // Use first admin as the system actor for RenewalLog entries
+  const systemActor = await db.user.findFirst({
+    where: { isAdmin: true },
+    select: { id: true },
+  })
+
   for (const sub of autoRenewing) {
+    const previousDate = sub.renewalDate
     let newDate = sub.renewalDate
     while (newDate.getTime() < now.getTime()) {
       newDate = nextRenewalDate(newDate, sub.billingCycle, sub.customDays)
     }
-    await db.subscription.update({
-      where: { id: sub.id },
-      data:  { renewalDate: newDate, status: SubscriptionStatus.ACTIVE },
-    })
+    await db.$transaction([
+      db.subscription.update({
+        where: { id: sub.id },
+        data:  { renewalDate: newDate, status: SubscriptionStatus.ACTIVE },
+      }),
+      ...(systemActor
+        ? [db.renewalLog.create({
+            data: {
+              subscriptionId: sub.id,
+              previousDate,
+              newDate,
+              renewedById: systemActor.id,
+            },
+          })]
+        : []
+      ),
+    ])
   }
 
   // Mark EXPIRED — manual subs with past renewalDate (autoRenew handled above)

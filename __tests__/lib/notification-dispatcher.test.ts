@@ -3,13 +3,18 @@ import { db } from "@/lib/db"
 
 vi.mock("@/lib/db", () => ({
   db: {
+    $transaction: vi.fn().mockImplementation((ops: unknown[]) => Promise.all(ops)),
     subscription: {
       updateMany: vi.fn(),
-      update:     vi.fn(),
+      update:     vi.fn().mockResolvedValue({}),
       findMany:   vi.fn().mockResolvedValue([]),
     },
     user: {
-      findMany: vi.fn().mockResolvedValue([]),
+      findMany:  vi.fn().mockResolvedValue([]),
+      findFirst: vi.fn().mockResolvedValue({ id: "system-admin-id" }),
+    },
+    renewalLog: {
+      create: vi.fn(),
     },
     notificationLog: {
       create: vi.fn(),

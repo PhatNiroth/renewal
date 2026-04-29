@@ -49,16 +49,3 @@ export async function auth(): Promise<Session | null> {
   }
 }
 
-// declare module augmentation so existing code that uses session.user.isAdmin still works
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string
-      email: string
-      name?: string | null
-      isAdmin: boolean
-      roleName?: string | null
-      permissions: Record<string, unknown>
-    }
-  }
-}

@@ -35,17 +35,6 @@ export {
   type SubscriptionPortfolioItem,
 } from "./business/spend-optimization.agent"
 
-// Conversational finance assistant for internal staff (tool use, streaming)
-export {
-  runBillingAssistant,
-  streamBillingAssistant,
-  type BillingAssistantInput,
-  type BillingAssistantResult,
-  type BillingContext,
-  type PaymentRecord,
-  type SubscriptionRecord,
-} from "./business/billing-assistant.agent"
-
 // Turns raw subscription metrics into plain-English procurement insights
 export {
   generateAnalyticsSummary,

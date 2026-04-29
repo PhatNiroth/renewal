@@ -185,7 +185,7 @@ export async function cancelSubscription(subscriptionId: string): Promise<Action
 export async function markAsRenewed(subscriptionId: string): Promise<ActionResult> {
   const session = await auth()
   const u = getUser(session)
-  if (!u) return { error: "Unauthorized" }
+  if (!u?.id) return { error: "Unauthorized" }
 
   try {
     const sub = await db.subscription.findUnique({ where: { id: subscriptionId } })
@@ -207,7 +207,7 @@ export async function markAsRenewed(subscriptionId: string): Promise<ActionResul
           subscriptionId,
           previousDate: sub.renewalDate,
           newDate,
-          renewedById:  u.id!,
+          renewedById:  u.id,
         },
       }),
     ])

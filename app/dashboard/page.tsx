@@ -1,6 +1,4 @@
-import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { redirect } from "next/navigation"
 import Link from "next/link"
 import {
   RiStackLine, RiMoneyDollarCircleLine, RiCalendarCheckLine,
@@ -29,17 +27,10 @@ const statusLabels: Record<string, string> = {
 }
 
 export default async function DashboardPage() {
-  const session = await auth()
-  if (!session?.user) redirect("/login")
-
-  const u = session.user as { isAdmin?: boolean; permissions?: Record<string, { view?: boolean }> }
-  const canViewSubs    = u.isAdmin || u.permissions?.SUBSCRIPTIONS?.view === true
-  const canViewRenewals = u.isAdmin || u.permissions?.RENEWALS?.view === true
-
-  const subscriptions = (canViewSubs || canViewRenewals) ? await db.subscription.findMany({
+  const subscriptions = await db.subscription.findMany({
     include: { vendor: true, responsible: true },
     orderBy: { renewalDate: "asc" },
-  }) : []
+  })
 
   type Sub = (typeof subscriptions)[number]
 
@@ -132,7 +123,7 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Recent subscriptions */}
-        {canViewSubs && <div className="rounded-xl border border-border bg-card">
+        <div className="rounded-xl border border-border bg-card">
           <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-border">
             <div>
               <h2 className="font-semibold text-foreground">Recent Subscriptions</h2>
@@ -165,10 +156,10 @@ export default async function DashboardPage() {
               </div>
             ))}
           </div>
-        </div>}
+        </div>
 
         {/* Upcoming renewals */}
-        {canViewRenewals && <div className="rounded-xl border border-border bg-card">
+        <div className="rounded-xl border border-border bg-card">
           <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-border">
             <div>
               <h2 className="font-semibold text-foreground">Upcoming Renewals</h2>
@@ -205,7 +196,7 @@ export default async function DashboardPage() {
               )
             })}
           </div>
-        </div>}
+        </div>
       </div>
     </div>
   )

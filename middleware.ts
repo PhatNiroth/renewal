@@ -1,30 +1,55 @@
-import NextAuth from "next-auth"
-import { authConfig } from "@/auth.config"
+import { jwtVerify } from "jose"
+import { NextRequest, NextResponse } from "next/server"
 
-// Use edge-safe config (no Prisma) for middleware
-const { auth } = NextAuth(authConfig)
+type AccessTokenPayload = {
+  sub: string
+  groups: string[]
+}
 
-export default auth((req) => {
+async function getSession(req: NextRequest): Promise<{ id: string; isAdmin: boolean } | null> {
+  try {
+    const token = req.cookies.get("access_token")?.value
+    if (!token) return null
+
+    const secret = process.env.JWT_ACCESS_SECRET
+    if (!secret) return null
+
+    const { payload } = await jwtVerify<AccessTokenPayload>(
+      token,
+      new TextEncoder().encode(secret)
+    )
+
+    return {
+      id:      payload.sub,
+      isAdmin: payload.groups.includes("admin"),
+    }
+  } catch {
+    return null
+  }
+}
+
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
-  const isLoggedIn = !!req.auth
+  const session = await getSession(req)
+  const isLoggedIn = !!session
 
-  if (pathname.startsWith("/dashboard")) {
+  if (pathname.startsWith("/renewal/dashboard")) {
     if (!isLoggedIn) {
-      return Response.redirect(new URL("/login", req.url))
+      return NextResponse.redirect(new URL("https://dashboard.krawma.com/login", req.url))
     }
+
     if (
-      pathname.startsWith("/dashboard/admin") &&
-      !(req.auth?.user as any)?.isAdmin
+      (pathname.startsWith("/renewal/dashboard/admin") ||
+       pathname.startsWith("/renewal/dashboard/settings")) &&
+      !session?.isAdmin
     ) {
-      return Response.redirect(new URL("/dashboard", req.url))
+      return NextResponse.redirect(new URL("/renewal/dashboard", req.url))
     }
   }
 
-  if (pathname === "/login" && isLoggedIn) {
-    return Response.redirect(new URL("/dashboard", req.url))
-  }
-})
+  return NextResponse.next()
+}
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login"],
+  matcher: ["/renewal/dashboard/:path*"],
 }

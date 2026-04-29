@@ -20,6 +20,11 @@ vi.mock("@/lib/db", () => ({
       create: vi.fn(),
       update: vi.fn(),
     },
+    globalNotificationSetting: {
+      findUnique: vi.fn().mockResolvedValue({
+        renewal7d: true, renewal3d: true, renewal1d: true, renewalExpired: false,
+      }),
+    },
   },
 }))
 

@@ -1,12 +1,55 @@
-import NextAuth from "next-auth"
-import Credentials from "next-auth/providers/credentials"
-import bcrypt from "bcryptjs"
-import { db } from "@/lib/db"
-import { authConfig } from "@/auth.config"
+import { jwtVerify } from "jose"
+import { cookies } from "next/headers"
 
-export type ModulePerms = { view: boolean; add: boolean; edit: boolean; delete: boolean }
-export type Permissions = Record<string, ModulePerms>
+export type Session = {
+  user: {
+    id: string
+    email: string
+    name: string | null
+    isAdmin: boolean
+  }
+}
 
+type AccessTokenPayload = {
+  sub: string
+  email: string
+  firstName: string | null
+  lastName: string | null
+  groups: string[]
+}
+
+function getSecret() {
+  const secret = process.env.JWT_ACCESS_SECRET
+  if (!secret) throw new Error("JWT_ACCESS_SECRET is not set")
+  return new TextEncoder().encode(secret)
+}
+
+function payloadToSession(payload: AccessTokenPayload): Session {
+  const name = [payload.firstName, payload.lastName].filter(Boolean).join(" ") || null
+  return {
+    user: {
+      id:      payload.sub,
+      email:   payload.email,
+      name,
+      isAdmin: payload.groups.includes("admin"),
+    },
+  }
+}
+
+export async function auth(): Promise<Session | null> {
+  try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get("access_token")?.value
+    if (!token) return null
+
+    const { payload } = await jwtVerify<AccessTokenPayload>(token, getSecret())
+    return payloadToSession(payload)
+  } catch {
+    return null
+  }
+}
+
+// declare module augmentation so existing code that uses session.user.isAdmin still works
 declare module "next-auth" {
   interface Session {
     user: {
@@ -15,63 +58,7 @@ declare module "next-auth" {
       name?: string | null
       isAdmin: boolean
       roleName?: string | null
-      permissions: Permissions
+      permissions: Record<string, unknown>
     }
   }
-  interface User {
-    isAdmin: boolean
-    roleName?: string | null
-    permissions: Permissions
-  }
 }
-
-export const { auth, handlers, signIn, signOut } = NextAuth({
-  ...authConfig,
-  providers: [
-    Credentials({
-      credentials: {
-        email:    { label: "Email",    type: "email"    },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null
-
-        const normalizedEmail = (credentials.email as string).toLowerCase().trim()
-        const user = await db.user.findUnique({
-          where: { email: normalizedEmail },
-          include: {
-            role: {
-              include: { permissions: true },
-            },
-          },
-        })
-
-        if (!user?.password) return null
-        const valid = await bcrypt.compare(credentials.password as string, user.password)
-        if (!valid) return null
-
-        // Build permissions map from role
-        const permissions: Permissions = {}
-        if (user.role?.permissions) {
-          for (const p of user.role.permissions) {
-            permissions[p.module] = {
-              view:   p.canView,
-              add:    p.canAdd,
-              edit:   p.canEdit,
-              delete: p.canDelete,
-            }
-          }
-        }
-
-        return {
-          id:          user.id,
-          email:       user.email,
-          name:        user.name,
-          isAdmin:     user.isAdmin,
-          roleName:    user.role?.name ?? null,
-          permissions,
-        }
-      },
-    }),
-  ],
-})

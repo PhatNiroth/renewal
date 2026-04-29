@@ -23,11 +23,8 @@ const mockDb   = vi.mocked(db)
 function adminSession() {
   return { user: { isAdmin: true, id: "admin-1", email: "admin@test.com" } } as any
 }
-function userWithRenewalEdit() {
-  return { user: { isAdmin: false, id: "user-1", permissions: { RENEWALS: { edit: true } } } } as any
-}
-function userWithoutRenewalEdit() {
-  return { user: { isAdmin: false, id: "user-1", permissions: {} } } as any
+function userSession() {
+  return { user: { isAdmin: false, id: "user-1", email: "user@test.com" } } as any
 }
 
 const { markAsRenewed } = await import("@/app/actions/subscriptions")
@@ -117,8 +114,8 @@ describe("markAsRenewed() — permissions", () => {
     expect(result).toEqual({ success: true })
   })
 
-  it("allows user with RENEWALS edit permission", async () => {
-    mockAuth.mockResolvedValueOnce(userWithRenewalEdit())
+  it("allows any logged-in user", async () => {
+    mockAuth.mockResolvedValueOnce(userSession())
     vi.mocked(mockDb.subscription.findUnique).mockResolvedValueOnce({
       id: "sub-1", billingCycle: "MONTHLY", customDays: null,
       renewalDate: new Date("2026-04-01"),
@@ -126,12 +123,6 @@ describe("markAsRenewed() — permissions", () => {
     vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
     const result = await markAsRenewed("sub-1")
     expect(result).toEqual({ success: true })
-  })
-
-  it("blocks user without RENEWALS edit permission", async () => {
-    mockAuth.mockResolvedValueOnce(userWithoutRenewalEdit())
-    const result = await markAsRenewed("sub-1")
-    expect(result).toEqual({ error: "Forbidden" })
   })
 
   it("blocks unauthenticated user", async () => {
@@ -224,7 +215,7 @@ describe("markAsRenewed() — renewal log", () => {
   })
 
   it("logs the user who performed the renewal", async () => {
-    mockAuth.mockResolvedValueOnce(userWithRenewalEdit())
+    mockAuth.mockResolvedValueOnce(userSession())
     vi.mocked(mockDb.subscription.findUnique).mockResolvedValueOnce({
       id: "sub-1", billingCycle: "YEARLY", customDays: null,
       renewalDate: new Date("2026-04-01"),

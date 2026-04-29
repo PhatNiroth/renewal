@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Krawma Renewal
 
-## Getting Started
+Subscription & renewal management app. Runs at `dashboard.krawma.com/renewal`.
 
-First, run the development server:
+> Login is handled by `dashboard.krawma.com` — this app has no login page.
 
+---
+
+## Local Setup
+
+### Prerequisites
+- Node.js 18+
+- PostgreSQL running on port **5436**
+
+### 1. Install dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Create the database
+```bash
+psql -U postgres -c "CREATE DATABASE krawma_renewal;"
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Set up environment variables
+Copy `.env.example` to `.env` and fill in the values:
+```bash
+cp .env.example .env
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Key values to update:
+- `DATABASE_URL` — your local PostgreSQL connection string
+- `NEXTAUTH_SECRET` — must match the value in `dashboard.krawma.com`'s `.env`
+- `AUTH_SECRET` — same value as `NEXTAUTH_SECRET`
 
-## Learn More
+### 4. Create tables
+```bash
+npx prisma migrate deploy
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 5. Seed initial data
+```bash
+npx prisma db seed
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This creates default accounts:
+| Email | Password | Role |
+|---|---|---|
+| admin@company.com | admin123 | Admin |
+| ops@company.com | ops123 | Operations |
+| accounting@company.com | acc123 | Accounting |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 6. Run the dev server
+```bash
+npm run dev
+```
 
-## Deploy on Vercel
+App runs at: http://localhost:3000/renewal
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Database Changes
+
+When you change `prisma/schema.prisma`:
+```bash
+npx prisma migrate dev --name describe_your_change
+```
+Then commit the generated files in `prisma/migrations/`.
+
+---
+
+## Useful Commands
+```bash
+npm run dev                 # Dev server
+npm test                    # Run tests
+npx tsc --noEmit            # Type check
+npx prisma studio           # Browse database
+npx prisma migrate dev      # New migration (after schema change)
+npx prisma db seed          # Re-seed database
+```

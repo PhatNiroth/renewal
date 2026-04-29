@@ -14,11 +14,11 @@ vi.mock("@/lib/db", () => ({
 const mockAuth = vi.mocked(auth)
 const mockDb   = vi.mocked(db)
 
+function userSession() {
+  return { user: { isAdmin: false, id: "user-1", email: "user@test.com" } } as any
+}
 function adminSession() {
   return { user: { isAdmin: true, id: "admin-1", email: "admin@test.com" } } as any
-}
-function userSession(permissions = {}) {
-  return { user: { isAdmin: false, id: "user-1", email: "user@test.com", permissions } } as any
 }
 
 const { recordPayment, deletePayment } = await import("@/app/actions/billing")
@@ -34,14 +34,8 @@ describe("recordPayment", () => {
     expect(result).toEqual({ error: "Unauthorized" })
   })
 
-  it("returns Forbidden without PAYMENTS add permission", async () => {
-    mockAuth.mockResolvedValueOnce(userSession())
-    const result = await recordPayment(new FormData())
-    expect(result).toEqual({ error: "Forbidden" })
-  })
-
   it("returns error if subscriptionId is missing", async () => {
-    mockAuth.mockResolvedValueOnce(adminSession())
+    mockAuth.mockResolvedValueOnce(userSession())
     const fd = new FormData()
     fd.set("amount", "100")
     fd.set("paidAt", "2026-04-09")
@@ -50,7 +44,7 @@ describe("recordPayment", () => {
   })
 
   it("returns error if amount is missing", async () => {
-    mockAuth.mockResolvedValueOnce(adminSession())
+    mockAuth.mockResolvedValueOnce(userSession())
     const fd = new FormData()
     fd.set("subscriptionId", "sub-1")
     fd.set("paidAt", "2026-04-09")
@@ -59,7 +53,7 @@ describe("recordPayment", () => {
   })
 
   it("returns error if paidAt is missing", async () => {
-    mockAuth.mockResolvedValueOnce(adminSession())
+    mockAuth.mockResolvedValueOnce(userSession())
     const fd = new FormData()
     fd.set("subscriptionId", "sub-1")
     fd.set("amount", "100")
@@ -68,7 +62,7 @@ describe("recordPayment", () => {
   })
 
   it("returns error for invalid amount", async () => {
-    mockAuth.mockResolvedValueOnce(adminSession())
+    mockAuth.mockResolvedValueOnce(userSession())
     const fd = new FormData()
     fd.set("subscriptionId", "sub-1")
     fd.set("amount", "-50")
@@ -105,14 +99,8 @@ describe("deletePayment", () => {
     expect(result).toEqual({ error: "Unauthorized" })
   })
 
-  it("returns Forbidden without PAYMENTS delete permission", async () => {
+  it("deletes payment as any logged-in user", async () => {
     mockAuth.mockResolvedValueOnce(userSession())
-    const result = await deletePayment("pay-1")
-    expect(result).toEqual({ error: "Forbidden" })
-  })
-
-  it("deletes payment as admin", async () => {
-    mockAuth.mockResolvedValueOnce(adminSession())
     vi.mocked(mockDb.payment.delete).mockResolvedValueOnce({} as any)
     const result = await deletePayment("pay-1")
     expect(result).toEqual({ success: true })

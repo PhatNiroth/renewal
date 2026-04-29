@@ -312,6 +312,14 @@ enum PaymentMethodType {
   OTHER
 }
 
+model GlobalNotificationSetting {
+  id             String  @id @default("global")
+  renewal7d      Boolean @default(true)
+  renewal3d      Boolean @default(true)
+  renewal1d      Boolean @default(true)
+  renewalExpired Boolean @default(false)
+}
+
 enum NotifType {
   RENEWAL_REMINDER_90_DAYS
   RENEWAL_REMINDER_30_DAYS

@@ -7,8 +7,21 @@ import type { NextAuthConfig } from "next-auth"
  */
 export const authConfig = {
   session: { strategy: "jwt" },
-  providers: [], // providers added in lib/auth.ts
-  pages: { signIn: "/login" },
+  providers: [],
+  basePath: "/renewal/api/auth",
+  pages: { signIn: "https://dashboard.krawma.com/login" },
+  cookies: {
+    sessionToken: {
+      name: "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        domain: process.env.COOKIE_DOMAIN ?? undefined,
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
   callbacks: {
     jwt({ token, user, trigger, session }) {
       if (user) {

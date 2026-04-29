@@ -17,17 +17,9 @@ function normalizeUrl(url: string | null): string | null {
   return `https://${trimmed}`
 }
 
-type VendorSessionUser = { isAdmin?: boolean; permissions?: Record<string, { add?: boolean; edit?: boolean }> }
-
-function canManageVendors(session: { user?: VendorSessionUser } | null): boolean {
-  if (!session?.user) return false
-  const u = session.user
-  return u.isAdmin === true || u.permissions?.VENDORS?.edit === true || u.permissions?.VENDORS?.add === true
-}
-
 export async function createVendor(formData: FormData): Promise<ActionResult> {
   const session = await auth()
-  if (!canManageVendors(session)) return { error: "Unauthorized" }
+  if (!session?.user) return { error: "Unauthorized" }
 
   const name         = formData.get("name") as string
   const categoryId   = formData.get("categoryId") as string | null
@@ -67,7 +59,7 @@ export async function createVendor(formData: FormData): Promise<ActionResult> {
 
 export async function updateVendor(vendorId: string, formData: FormData): Promise<ActionResult> {
   const session = await auth()
-  if (!canManageVendors(session)) return { error: "Unauthorized" }
+  if (!session?.user) return { error: "Unauthorized" }
 
   const name         = formData.get("name") as string
   const categoryId   = formData.get("categoryId") as string | null

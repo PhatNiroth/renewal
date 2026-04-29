@@ -1,6 +1,5 @@
 import { db } from "@/lib/db"
 import { auth } from "@/lib/auth"
-import { getPermissions, can } from "@/lib/permissions"
 import { pickAutoColor } from "@/lib/category-colors"
 import { NextResponse } from "next/server"
 
@@ -12,12 +11,6 @@ export async function GET() {
   const session = await auth()
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const u = session.user as { isAdmin?: boolean }
-  const perms = getPermissions(session)
-  if (!u.isAdmin && !can(perms, "VENDORS", "view")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
-
   const categories = await db.vendorCategory.findMany({
     orderBy: { name: "asc" },
     include: { _count: { select: { vendors: true } } },
@@ -28,13 +21,6 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
-  const u = session.user as { isAdmin?: boolean }
-  const perms = getPermissions(session)
-  // Inline category create is a sub-action of managing vendors.
-  if (!u.isAdmin && !can(perms, "VENDORS", "add") && !can(perms, "VENDORS", "edit")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
 
   const body = await req.json()
   const { name, color } = body

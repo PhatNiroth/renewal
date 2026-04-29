@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 
-// Mock Prisma
 vi.mock("@/lib/db", () => ({
   db: {
     subscription: {
@@ -24,12 +23,10 @@ const mockDb   = vi.mocked(db)
 function adminSession() {
   return { user: { isAdmin: true, id: "admin-1", email: "admin@test.com" } } as any
 }
-
-function userSession(permissions = {}) {
-  return { user: { isAdmin: false, id: "user-1", email: "user@test.com", permissions } } as any
+function userSession() {
+  return { user: { isAdmin: false, id: "user-1", email: "user@test.com" } } as any
 }
 
-// Import actions after mocks are set up
 const {
   createSubscription,
   cancelSubscription,
@@ -44,19 +41,12 @@ describe("createSubscription", () => {
 
   it("returns Unauthorized if not logged in", async () => {
     mockAuth.mockResolvedValueOnce(null as any)
-    const fd = new FormData()
-    const result = await createSubscription(fd)
+    const result = await createSubscription(new FormData())
     expect(result).toEqual({ error: "Unauthorized" })
   })
 
-  it("returns Forbidden if user lacks permission", async () => {
-    mockAuth.mockResolvedValueOnce(userSession())
-    const result = await createSubscription(new FormData())
-    expect(result).toEqual({ error: "Forbidden" })
-  })
-
   it("returns error if vendorId is missing", async () => {
-    mockAuth.mockResolvedValueOnce(adminSession())
+    mockAuth.mockResolvedValueOnce(userSession())
     const fd = new FormData()
     fd.set("planName", "Pro")
     fd.set("cost", "100")
@@ -67,7 +57,7 @@ describe("createSubscription", () => {
   })
 
   it("returns error for invalid cost", async () => {
-    mockAuth.mockResolvedValueOnce(adminSession())
+    mockAuth.mockResolvedValueOnce(userSession())
     const fd = new FormData()
     fd.set("vendorId", "vendor-1")
     fd.set("planName", "Pro")
@@ -79,7 +69,7 @@ describe("createSubscription", () => {
   })
 
   it("returns error for CUSTOM cycle without customDays", async () => {
-    mockAuth.mockResolvedValueOnce(adminSession())
+    mockAuth.mockResolvedValueOnce(userSession())
     const fd = new FormData()
     fd.set("vendorId", "vendor-1")
     fd.set("planName", "Pro")
@@ -91,7 +81,7 @@ describe("createSubscription", () => {
     expect(result).toEqual({ error: "Custom duration (days) is required" })
   })
 
-  it("creates subscription successfully as admin", async () => {
+  it("creates subscription successfully", async () => {
     mockAuth.mockResolvedValueOnce(adminSession())
     vi.mocked(mockDb.subscription.create).mockResolvedValueOnce({} as any)
     const fd = new FormData()
@@ -122,8 +112,8 @@ describe("cancelSubscription", () => {
     expect(result).toEqual({ error: "Unauthorized" })
   })
 
-  it("cancels subscription as admin", async () => {
-    mockAuth.mockResolvedValueOnce(adminSession())
+  it("cancels subscription as any logged-in user", async () => {
+    mockAuth.mockResolvedValueOnce(userSession())
     vi.mocked(mockDb.subscription.update).mockResolvedValueOnce({} as any)
     const result = await cancelSubscription("sub-1")
     expect(result).toEqual({ success: true })
@@ -145,14 +135,8 @@ describe("markAsRenewed", () => {
     expect(result).toEqual({ error: "Unauthorized" })
   })
 
-  it("returns Forbidden without RENEWALS edit permission", async () => {
-    mockAuth.mockResolvedValueOnce(userSession())
-    const result = await markAsRenewed("sub-1")
-    expect(result).toEqual({ error: "Forbidden" })
-  })
-
   it("returns error if subscription not found", async () => {
-    mockAuth.mockResolvedValueOnce(adminSession())
+    mockAuth.mockResolvedValueOnce(userSession())
     vi.mocked(mockDb.subscription.findUnique).mockResolvedValueOnce(null)
     const result = await markAsRenewed("sub-1")
     expect(result).toEqual({ error: "Subscription not found" })
@@ -225,14 +209,14 @@ describe("markAsRenewed", () => {
 describe("deleteSubscription", () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it("returns Forbidden for non-admin without delete permission", async () => {
-    mockAuth.mockResolvedValueOnce(userSession())
+  it("returns Unauthorized if not logged in", async () => {
+    mockAuth.mockResolvedValueOnce(null as any)
     const result = await deleteSubscription("sub-1")
-    expect(result).toEqual({ error: "Forbidden" })
+    expect(result).toEqual({ error: "Unauthorized" })
   })
 
-  it("deletes subscription as admin", async () => {
-    mockAuth.mockResolvedValueOnce(adminSession())
+  it("deletes subscription as any logged-in user", async () => {
+    mockAuth.mockResolvedValueOnce(userSession())
     vi.mocked(mockDb.subscription.delete).mockResolvedValueOnce({} as any)
     const result = await deleteSubscription("sub-1")
     expect(result).toEqual({ success: true })

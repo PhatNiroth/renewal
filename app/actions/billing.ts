@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache"
 
 type ActionResult = { error: string } | { success: true }
 
-type SessionUser = { id?: string; isAdmin?: boolean; permissions?: Record<string, { add?: boolean; delete?: boolean }> }
+type SessionUser = { id?: string; isAdmin?: boolean }
 
 function getUser(session: { user?: SessionUser } | null): SessionUser | undefined {
   return session?.user as SessionUser | undefined
@@ -16,7 +16,6 @@ export async function recordPayment(formData: FormData): Promise<ActionResult> {
   const session = await auth()
   const u = getUser(session)
   if (!u) return { error: "Unauthorized" }
-  if (!u.isAdmin && !u.permissions?.PAYMENTS?.add) return { error: "Forbidden" }
 
   const subscriptionId = formData.get("subscriptionId") as string
   const amount         = formData.get("amount") as string
@@ -54,7 +53,6 @@ export async function deletePayment(paymentId: string): Promise<ActionResult> {
   const session = await auth()
   const u = getUser(session)
   if (!u) return { error: "Unauthorized" }
-  if (!u.isAdmin && !u.permissions?.PAYMENTS?.delete) return { error: "Forbidden" }
 
   try {
     await db.payment.delete({ where: { id: paymentId } })

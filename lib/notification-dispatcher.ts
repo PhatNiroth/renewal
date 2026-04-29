@@ -147,6 +147,15 @@ export async function runNotificationDispatcher(): Promise<DispatchResult> {
   const now = new Date()
   let sent = 0, skipped = 0, errors = 0, telegramErrors = 0
 
+  // Global notification setting — admin controls which windows are active
+  const globalSetting = await db.globalNotificationSetting.findUnique({ where: { id: "global" } })
+  const globalPrefs = {
+    renewal7d:      globalSetting?.renewal7d      ?? true,
+    renewal3d:      globalSetting?.renewal3d      ?? true,
+    renewal1d:      globalSetting?.renewal1d      ?? true,
+    renewalExpired: globalSetting?.renewalExpired ?? false,
+  }
+
   // Fallback recipients when no responsible user is assigned
   const admins = await db.user.findMany({
     where: { isAdmin: true },
@@ -167,7 +176,7 @@ export async function runNotificationDispatcher(): Promise<DispatchResult> {
       },
       include: {
         vendor:      { include: { category: true } },
-        responsible: { include: { notificationPref: true } },
+        responsible: true,
         notificationLogs: {
           where: { type, scheduledFor: { gte: from, lte: to } },
         },
@@ -188,9 +197,8 @@ export async function runNotificationDispatcher(): Promise<DispatchResult> {
       const recipients: { id: string; name: string; email: string }[] = []
 
       if (sub.responsible) {
-        const pref    = sub.responsible.notificationPref
-        // Long-lead opt-in reminders (prefKey null) skip per-user toggles — they're already opt-in at the sub level.
-        const enabled = prefKey === null ? true : (pref ? pref[prefKey] : true)
+        // Long-lead opt-in reminders (prefKey null) always fire; others check global setting.
+        const enabled = prefKey === null ? true : globalPrefs[prefKey]
         if (enabled) {
           recipients.push({
             id:    sub.responsible.id,

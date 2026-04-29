@@ -15,7 +15,7 @@ function parseKind(raw: string | null): SubscriptionKind {
 
 type ActionResult = { error: string } | { success: true }
 
-type SessionUser = { id?: string; isAdmin?: boolean; permissions?: Record<string, { add?: boolean; edit?: boolean; delete?: boolean }> }
+type SessionUser = { id?: string; isAdmin?: boolean }
 
 function getUser(session: { user?: SessionUser } | null): SessionUser | undefined {
   return session?.user as SessionUser | undefined
@@ -47,7 +47,6 @@ export async function createSubscription(formData: FormData): Promise<ActionResu
   const session = await auth()
   const u = getUser(session)
   if (!u) return { error: "Unauthorized" }
-  if (!u.isAdmin && !u.permissions?.SUBSCRIPTIONS?.add) return { error: "Forbidden" }
 
   const vendorId        = formData.get("vendorId") as string
   const planName        = formData.get("planName") as string
@@ -140,7 +139,6 @@ export async function updateSubscription(
   const session = await auth()
   const u = getUser(session)
   if (!u) return { error: "Unauthorized" }
-  if (!u.isAdmin && !u.permissions?.SUBSCRIPTIONS?.edit) return { error: "Forbidden" }
 
   if (data.startDate && data.renewalDate && data.renewalDate <= data.startDate) {
     return { error: "Renewal date must be after start date" }
@@ -169,7 +167,6 @@ export async function cancelSubscription(subscriptionId: string): Promise<Action
   const session = await auth()
   const u = getUser(session)
   if (!u) return { error: "Unauthorized" }
-  if (!u.isAdmin && !u.permissions?.SUBSCRIPTIONS?.edit) return { error: "Forbidden" }
 
   try {
     await db.subscription.update({
@@ -189,7 +186,6 @@ export async function markAsRenewed(subscriptionId: string): Promise<ActionResul
   const session = await auth()
   const u = getUser(session)
   if (!u) return { error: "Unauthorized" }
-  if (!u.isAdmin && !u.permissions?.RENEWALS?.edit) return { error: "Forbidden" }
 
   try {
     const sub = await db.subscription.findUnique({ where: { id: subscriptionId } })
@@ -229,7 +225,6 @@ export async function deleteSubscription(subscriptionId: string): Promise<Action
   const session = await auth()
   const u = getUser(session)
   if (!u) return { error: "Unauthorized" }
-  if (!u.isAdmin && !u.permissions?.SUBSCRIPTIONS?.delete) return { error: "Forbidden" }
 
   try {
     await db.subscription.delete({ where: { id: subscriptionId } })

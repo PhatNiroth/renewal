@@ -49,7 +49,7 @@ function buildEmailHtml(headline: string, preheader: string, bodyText: string, a
 type NotifyWindow = {
   days: number
   type: NotifType
-  /** User-level NotificationPref toggle. null for opt-in long-lead reminders, which are always sent when configured. */
+  /** Global setting key. null for opt-in long-lead reminders, which are always sent when configured. */
   prefKey: "renewal7d" | "renewal3d" | "renewal1d" | null
   /** When true, only fires for subs that opted in via NotificationConfig. */
   requiresConfig: boolean

@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 
 const adminNav = [
-  { href: "/dashboard/admin/roles", label: "Roles" },
   { href: "/dashboard/admin/users", label: "Users" },
 ]
 

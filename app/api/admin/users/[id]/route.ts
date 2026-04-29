@@ -7,16 +7,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (error) return error
 
   const { id } = await params
-  const { name, roleId, isAdmin } = await req.json()
+  const { name, isAdmin } = await req.json()
 
   const user = await db.user.update({
     where: { id },
     data: {
       name:    name?.trim() ?? undefined,
-      roleId:  roleId !== undefined ? (roleId || null) : undefined,
       isAdmin: isAdmin !== undefined ? isAdmin : undefined,
     },
-    include: { role: true },
   })
   return NextResponse.json(user)
 }

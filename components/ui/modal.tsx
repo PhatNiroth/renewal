@@ -17,9 +17,10 @@ const sizeClass = {
 
 export function Modal({ title, onClose, children, size = "md" }: ModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4" onClick={onClose}>
       <div
         className={`w-full ${sizeClass[size]} rounded-xl border border-border bg-card shadow-xl max-h-[90vh] overflow-y-auto`}
+        onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h3 className="font-semibold text-foreground">{title}</h3>

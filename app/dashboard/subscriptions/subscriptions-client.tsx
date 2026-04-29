@@ -738,6 +738,12 @@ function DetailsModal({ sub, onClose }: { sub: SubscriptionFull; onClose: () => 
         : "—",
     },
     { label: "Notes",         value: sub.notes ?? "—" },
+    ...(sub.documentPath ? [{
+      label: "Document",
+      value: sub.documentPath.startsWith("http")
+        ? <a href={sub.documentPath} target="_blank" rel="noreferrer" className="text-primary hover:underline break-all text-xs">{sub.documentPath}</a>
+        : <span className="break-all text-xs">{sub.documentPath}</span>,
+    }] : []),
   ]
 
   return (
@@ -1168,7 +1174,7 @@ export default function SubscriptionsClient({
                       {showActionsCol && (
                         <td className="px-4 xl:px-6 py-3.5">
                           <div className="flex items-center justify-end gap-2">
-                            {canMarkRenewed && sub.status !== "CANCELLED" && daysUntil(sub.renewalDate) <= 30 && (
+                            {canMarkRenewed && sub.status !== "CANCELLED" && sub.kind !== "CARD" && daysUntil(sub.renewalDate) <= 30 && (
                               <Button
                                 variant="outline"
                                 size="icon-sm"
@@ -1274,7 +1280,7 @@ export default function SubscriptionsClient({
 
                   {showActionsCol && (
                     <div className="flex items-center gap-2 pt-1">
-                      {canMarkRenewed && sub.status !== "CANCELLED" && daysUntil(sub.renewalDate) <= 30 && (
+                      {canMarkRenewed && sub.status !== "CANCELLED" && sub.kind !== "CARD" && daysUntil(sub.renewalDate) <= 30 && (
                         <Button
                           variant="outline"
                           size="icon-sm"

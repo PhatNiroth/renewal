@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-  RiHome5Line, RiStackLine, RiShieldLine,
+  RiHome5Line, RiStackLine,
   RiSettings3Line, RiMenuLine, RiCloseLine, RiSunLine,
   RiMoonLine, RiBuildingLine, RiLogoutBoxLine,
 } from "@remixicon/react"
@@ -19,9 +19,6 @@ const navItems = [
   { href: "/dashboard/vendors",      label: "Vendors",       icon: RiBuildingLine },
 ]
 
-const adminItems = [
-  { href: "/dashboard/admin", label: "Admin Panel", icon: RiShieldLine },
-]
 
 export default function DashboardShell({
   session,
@@ -92,7 +89,7 @@ export default function DashboardShell({
           </p>
           {navItems.map(({ href, label, icon: Icon }) => {
             const active = pathname === href || (
-              href !== "/dashboard" && pathname.startsWith(href) && !pathname.startsWith("/dashboard/admin")
+              href !== "/dashboard" && pathname.startsWith(href)
             )
             return (
               <Link
@@ -111,31 +108,6 @@ export default function DashboardShell({
             )
           })}
 
-          {isAdmin && (
-            <>
-              <p className="px-3 pt-4 pb-2 text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
-                Admin
-              </p>
-              {adminItems.map(({ href, label, icon: Icon }) => {
-                const active = pathname.startsWith(href)
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                      active
-                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                    )}
-                  >
-                    <Icon className="size-4 shrink-0" />
-                    {label}
-                  </Link>
-                )
-              })}
-            </>
-          )}
         </nav>
 
         {/* User section */}

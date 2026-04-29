@@ -39,8 +39,7 @@ export async function middleware(req: NextRequest) {
     }
 
     if (
-      (pathname.startsWith("/renewal/dashboard/admin") ||
-       pathname.startsWith("/renewal/dashboard/settings")) &&
+      pathname.startsWith("/renewal/dashboard/settings") &&
       !session?.isAdmin
     ) {
       return NextResponse.redirect(new URL("/renewal/dashboard", req.url))

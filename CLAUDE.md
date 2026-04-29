@@ -27,7 +27,6 @@
 ```
 app/
 ├── dashboard/        # Authenticated area
-│   ├── admin/        # Admin-only (isAdmin guard)
 │   ├── subscriptions/
 │   ├── billing/
 │   ├── renewals/
@@ -48,17 +47,13 @@ prisma/               # schema.prisma, migrations/, seed.ts
 - Session is a JWT (`access_token` cookie) issued by `dashboard.krawma.com`, verified with `JWT_ACCESS_SECRET`
 - Cookie is set on `localhost` (local) or `dashboard.krawma.com` (prod) — no `COOKIE_DOMAIN` needed locally
 - Session fields: `id`, `email`, `name`, `isAdmin`
-- Check admin: `session.user.isAdmin` — NOT `.role`
-- Admin API routes: use `requireAdmin()` from `lib/permissions.ts`
 - Dashboard layout handles session redirect — don't duplicate in pages
 - **`JWT_ACCESS_SECRET` must match the value in `dashboard.krawma.com`'s `.env`**
 
 ## Permission Model
-- **Two levels only: logged-in user and admin**
-- Any authenticated user can access everything except Settings and Admin
-- `isAdmin: true` gates `/dashboard/settings` and `/dashboard/admin/*` (enforced in middleware)
+- Any authenticated user can access everything except Settings
+- `isAdmin: true` gates `/dashboard/settings` (enforced in middleware)
 - API routes and Server Actions: check `session?.user` (login only) — no per-module permission checks
-- Exception: `deactivateVendor` action requires admin
 - Do NOT add per-module permission guards — the old `can()` / `getPermissions()` pattern is retired
 
 ## Settings (Admin Only)

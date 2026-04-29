@@ -8,74 +8,21 @@ datasource db {
 }
 
 // ─── Users ────────────────────────────────────────────────────────────────────
+// Lightweight mirror of dashboard.krawma.com users.
+// Auth is handled entirely by the dashboard — no password or session stored here.
 
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String?
-  password  String?
   isAdmin   Boolean  @default(false)
-  roleId    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  role                Role?                @relation(fields: [roleId], references: [id])
   responsibleFor      Subscription[]       @relation("ResponsibleUser")
   payments            Payment[]
   renewalLogs         RenewalLog[]         @relation("RenewalLogs")
   notificationTargets NotificationConfig[] @relation("NotifyUsers")
-  sessions            Session[]
-  notificationPref    NotificationPref?
-}
-
-model NotificationPref {
-  id              String  @id @default(cuid())
-  userId          String  @unique
-  renewal7d       Boolean @default(true)
-  renewal3d       Boolean @default(true)
-  renewal1d       Boolean @default(true)
-  renewalExpired  Boolean @default(false)
-  telegramChatId  String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  userId       String
-  sessionToken String   @unique
-  expires      DateTime
-  createdAt    DateTime @default(now())
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-// ─── Roles & Permissions ──────────────────────────────────────────────────────
-
-model Role {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  isSystem  Boolean  @default(false) // system roles cannot be deleted
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  permissions Permission[]
-  users       User[]
-}
-
-model Permission {
-  id        String @id @default(cuid())
-  roleId    String
-  module    Module
-  canView   Boolean @default(false)
-  canAdd    Boolean @default(false)
-  canEdit   Boolean @default(false)
-  canDelete Boolean @default(false)
-
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, module])
 }
 
 // ─── Vendor Categories ────────────────────────────────────────────────────────
@@ -245,14 +192,6 @@ model NotificationLog {
 }
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
-
-enum Module {
-  SUBSCRIPTIONS
-  RENEWALS
-  VENDORS
-  VENDOR_CATEGORIES
-  PAYMENTS
-}
 
 enum Department {
   IT

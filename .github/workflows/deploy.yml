@@ -1,0 +1,37 @@
+name: Deploy
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: RELEASE_TAG
+          command_timeout: 30m
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd /opt/krawma-renewal
+            git fetch --tags --prune
+            git checkout "${RELEASE_TAG}"
+            npm ci --omit=dev
+            npx prisma migrate deploy
+            npm run build
+            pm2 restart krawma-renewal
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}

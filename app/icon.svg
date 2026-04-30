@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Rounded square background matching bg-primary -->
+  <rect width="32" height="32" rx="8" fill="#3d80cc"/>
+  <!-- RiStackLine icon centered, white, roughly 20px within 32px canvas -->
+  <!-- Stack icon: three horizontal layers -->
+  <path d="M16 7L6 12l10 5 10-5-10-5z" fill="white"/>
+  <path d="M6 17l10 5 10-5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M6 22l10 5 10-5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

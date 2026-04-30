@@ -9,9 +9,9 @@ export default async function SubscriptionsPage() {
 
   const isAdmin = session.user.isAdmin
 
-  const [subscriptions, vendors, users, paymentMethods] = await Promise.all([
+  const [subscriptions, vendors, users] = await Promise.all([
     db.subscription.findMany({
-      include: { vendor: true, responsible: true, notificationConfigs: true, paymentMethod: true },
+      include: { vendor: true, responsible: true, notificationConfigs: true },
       orderBy: { renewalDate: "asc" },
     }),
     db.vendor.findMany({
@@ -22,31 +22,18 @@ export default async function SubscriptionsPage() {
       select: { id: true, name: true, email: true },
       orderBy: { name: "asc" },
     }),
-    db.paymentMethod.findMany({
-      where: { isActive: true },
-      orderBy: { name: "asc" },
-    }),
   ])
-
-  const canEdit                = true
-  const canAdd                 = true
-  const canDelete              = isAdmin
-  const canViewHistory         = true
-  const canMarkRenewed         = true
-  const canCreatePaymentMethod = true
 
   return (
     <SubscriptionsClient
       subscriptions={subscriptions}
       vendors={vendors}
       users={users}
-      paymentMethods={paymentMethods}
-      canEdit={!!canEdit}
-      canAdd={!!canAdd}
-      canDelete={!!canDelete}
-      canViewHistory={!!canViewHistory}
-      canMarkRenewed={!!canMarkRenewed}
-      canCreatePaymentMethod={!!canCreatePaymentMethod}
+      canEdit={true}
+      canAdd={true}
+      canDelete={!!isAdmin}
+      canViewHistory={true}
+      canMarkRenewed={true}
     />
   )
 }

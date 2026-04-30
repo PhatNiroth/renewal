@@ -746,14 +746,6 @@ describe("createSubscription — optional field handling", () => {
     )
   })
 
-  it("stores paymentMethodId when provided", async () => {
-    mockAuth.mockResolvedValueOnce(session()); okCreate()
-    const fd = baseForm({ paymentMethodId: "pm-aba-123" })
-    await createSubscription(fd)
-    expect(mockDb.subscription.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ paymentMethodId: "pm-aba-123" }) })
-    )
-  })
 })
 
 // ─── Extra reminders (long-lead chips) ────────────────────────────────────────

@@ -7,7 +7,6 @@ async function main() {
 
   // Clear data (order matters for FK constraints)
   await db.notificationConfig.deleteMany()
-  await db.payment.deleteMany()
   await db.subscription.deleteMany()
   await db.vendor.deleteMany()
 

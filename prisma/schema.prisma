@@ -20,7 +20,6 @@ model User {
   updatedAt DateTime @updatedAt
 
   responsibleFor      Subscription[]       @relation("ResponsibleUser")
-  payments            Payment[]
   renewalLogs         RenewalLog[]         @relation("RenewalLogs")
   notificationTargets NotificationConfig[] @relation("NotifyUsers")
 }
@@ -79,7 +78,6 @@ model Subscription {
   cardBrand     String?
   cardLast4     String?
   responsibleId   String?
-  paymentMethodId String?
   notes           String?
   documentPath    String?
   createdAt       DateTime           @default(now())
@@ -87,8 +85,6 @@ model Subscription {
 
   vendor              Vendor               @relation(fields: [vendorId], references: [id])
   responsible         User?                @relation("ResponsibleUser", fields: [responsibleId], references: [id])
-  paymentMethod       PaymentMethod?       @relation(fields: [paymentMethodId], references: [id])
-  payments            Payment[]
   renewalLogs         RenewalLog[]
   notificationConfigs NotificationConfig[]
   notificationLogs    NotificationLog[]
@@ -97,32 +93,6 @@ model Subscription {
   @@index([status])
   @@index([responsibleId])
   @@index([vendorId])
-  @@index([paymentMethodId])
-}
-
-// ─── Payment Methods ──────────────────────────────────────────────────────────
-
-model PaymentMethod {
-  id           String            @id @default(cuid())
-  name         String            // "Marketing Visa", "Ops Bank Account"
-  type         PaymentMethodType
-  // Card fields — last 4 ONLY, never full PAN; never CVV.
-  cardBrand    String?           // VISA, MASTERCARD, AMEX, ...
-  cardLast4    String?           // exactly 4 digits
-  cardExpiry   String?           // "MM/YY" — display only
-  // Bank fields
-  bankName     String?
-  accountLast4 String?
-  // Catch-all for INVOICE / WIRE / CHECK / OTHER
-  reference    String?           // PO-2024-0123, IBAN ref, check #, etc.
-  notes        String?
-  isActive     Boolean           @default(true)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-
-  subscriptions Subscription[]
-
-  @@index([isActive])
 }
 
 // ─── Renewal Logs ────────────────────────────────────────────────────────────
@@ -141,26 +111,6 @@ model RenewalLog {
 
   @@index([subscriptionId])
   @@index([renewedById])
-}
-
-// ─── Payments ─────────────────────────────────────────────────────────────────
-
-model Payment {
-  id             String   @id @default(cuid())
-  subscriptionId String
-  amount         Int      // in cents
-  currency       String   @default("usd")
-  paidAt         DateTime
-  paidById       String?
-  note           String?
-  receiptUrl     String?
-  createdAt      DateTime @default(now())
-
-  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-  paidBy       User?        @relation(fields: [paidById], references: [id])
-
-  @@index([subscriptionId])
-  @@index([paidById])
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────
@@ -238,17 +188,6 @@ enum SubscriptionKind {
 enum NotifChannel {
   EMAIL
   TELEGRAM
-}
-
-enum PaymentMethodType {
-  CARD
-  BANK_TRANSFER
-  INVOICE
-  WIRE
-  CHECK
-  PAYPAL
-  CASH
-  OTHER
 }
 
 model GlobalNotificationSetting {

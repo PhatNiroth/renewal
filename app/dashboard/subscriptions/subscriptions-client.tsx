@@ -7,7 +7,7 @@ import {
   RiArrowUpLine, RiArrowDownLine, RiCheckLine,
   RiLoader4Line, RiAlertLine, RiCloseLine,
   RiEditLine, RiDeleteBinLine, RiLink,
-  RiCheckDoubleLine, RiHistoryLine, RiEyeLine,
+  RiCheckDoubleLine, RiHistoryLine, RiEyeLine, RiLoopLeftLine,
 } from "@remixicon/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -831,12 +831,15 @@ function HistoryModal({ sub, onClose }: { sub: SubscriptionFull; onClose: () => 
                   <tr key={log.id}>
                     <td className="px-3 py-2 text-muted-foreground">{fmtDate(log.previousDate)}</td>
                     <td className="px-3 py-2 text-foreground">{fmtDate(log.newDate)}</td>
-                    <td className="px-3 py-2 text-foreground truncate">
-                      <span className="flex items-center gap-1.5">
-                        {log.isAuto
-                          ? <span className="inline-flex items-center rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">Auto</span>
-                          : null}
-                        {log.renewedBy.name || log.renewedBy.email}
+                    <td className="px-3 py-2 text-foreground">
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <span className="truncate">{log.renewedBy.name || log.renewedBy.email}</span>
+                        {log.isAuto && (
+                          <span className="shrink-0 inline-flex items-center gap-0.5 rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
+                            <RiLoopLeftLine className="size-2.5" />
+                            Auto
+                          </span>
+                        )}
                       </span>
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{fmtDate(log.createdAt)}</td>
@@ -845,11 +848,6 @@ function HistoryModal({ sub, onClose }: { sub: SubscriptionFull; onClose: () => 
               </tbody>
             </table>
           </div>
-        )}
-        {!loading && !error && logs && (
-          <p className="text-xs text-muted-foreground">
-            Shows both manual renewals and auto-renewals. Auto-renewals are tagged with <span className="inline-flex items-center rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">Auto</span>.
-          </p>
         )}
         <div className="flex justify-end pt-1">
           <Button variant="outline" onClick={onClose}>Close</Button>

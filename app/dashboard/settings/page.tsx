@@ -26,7 +26,7 @@ export default function SettingsPage() {
   const [error, setError]       = useState<string | null>(null)
 
   useEffect(() => {
-    fetch("/api/admin/notifications")
+    fetch("/renewal/api/admin/notifications")
       .then(r => r.json())
       .then((data: GlobalNotifPrefs) => { setPrefs(data); setLoading(false) })
       .catch(() => setLoading(false))
@@ -35,7 +35,7 @@ export default function SettingsPage() {
   function handleSave() {
     setError(null)
     startTransition(async () => {
-      const res = await fetch("/api/admin/notifications", {
+      const res = await fetch("/renewal/api/admin/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(prefs),

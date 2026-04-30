@@ -13,6 +13,9 @@ vi.mock("@/lib/db", () => ({
     renewalLog: {
       create: vi.fn(),
     },
+    user: {
+      upsert: vi.fn(),
+    },
     $transaction: vi.fn(),
   },
 }))
@@ -21,10 +24,20 @@ const mockAuth = vi.mocked(auth)
 const mockDb   = vi.mocked(db)
 
 function adminSession() {
-  return { user: { isAdmin: true, id: "admin-1", email: "admin@test.com" } } as any
+  return { user: { isAdmin: true, id: "admin-1", email: "admin@test.com", name: "Admin" } } as any
 }
 function userSession() {
-  return { user: { isAdmin: false, id: "user-1", email: "user@test.com" } } as any
+  return { user: { isAdmin: false, id: "user-1", email: "user@test.com", name: "User" } } as any
+}
+
+function mockTx(upsertId = "admin-1") {
+  vi.mocked(mockDb.$transaction).mockImplementationOnce(async (fn: any) =>
+    fn({
+      user:         { upsert: vi.fn().mockResolvedValue({ id: upsertId }) },
+      subscription: { update: vi.mocked(mockDb.subscription.update) },
+      renewalLog:   { create: vi.mocked(mockDb.renewalLog.create) },
+    })
+  )
 }
 
 const { markAsRenewed } = await import("@/app/actions/subscriptions")
@@ -109,7 +122,7 @@ describe("markAsRenewed() — permissions", () => {
       id: "sub-1", billingCycle: "MONTHLY", customDays: null,
       renewalDate: new Date("2026-04-01"),
     } as any)
-    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
+    mockTx()
     const result = await markAsRenewed("sub-1")
     expect(result).toEqual({ success: true })
   })
@@ -120,7 +133,7 @@ describe("markAsRenewed() — permissions", () => {
       id: "sub-1", billingCycle: "MONTHLY", customDays: null,
       renewalDate: new Date("2026-04-01"),
     } as any)
-    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
+    mockTx()
     const result = await markAsRenewed("sub-1")
     expect(result).toEqual({ success: true })
   })
@@ -143,7 +156,7 @@ describe("markAsRenewed() — status reset", () => {
       id: "sub-1", billingCycle: "MONTHLY", customDays: null,
       renewalDate: new Date("2026-04-01"), status: "EXPIRING_SOON",
     } as any)
-    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
+    mockTx()
     await markAsRenewed("sub-1")
     // First item in transaction is the subscription update
     expect(mockDb.subscription.update).toHaveBeenCalledWith(
@@ -157,7 +170,7 @@ describe("markAsRenewed() — status reset", () => {
       id: "sub-1", billingCycle: "YEARLY", customDays: null,
       renewalDate: new Date("2025-01-01"), status: "EXPIRED",
     } as any)
-    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
+    mockTx()
     await markAsRenewed("sub-1")
     expect(mockDb.subscription.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: "ACTIVE" }) })
@@ -184,7 +197,7 @@ describe("markAsRenewed() — renewal log", () => {
       id: "sub-1", billingCycle: "MONTHLY", customDays: null,
       renewalDate: previousDate,
     } as any)
-    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
+    mockTx()
 
     await markAsRenewed("sub-1")
 
@@ -205,7 +218,7 @@ describe("markAsRenewed() — renewal log", () => {
       id: "sub-1", billingCycle: "MONTHLY", customDays: null,
       renewalDate: previousDate,
     } as any)
-    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
+    mockTx()
 
     await markAsRenewed("sub-1")
 
@@ -220,7 +233,7 @@ describe("markAsRenewed() — renewal log", () => {
       id: "sub-1", billingCycle: "YEARLY", customDays: null,
       renewalDate: new Date("2026-04-01"),
     } as any)
-    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
+    mockTx("user-1")
 
     await markAsRenewed("sub-1")
 
@@ -234,13 +247,12 @@ describe("markAsRenewed() — renewal log", () => {
       id: "sub-1", billingCycle: "MONTHLY", customDays: null,
       renewalDate: new Date("2026-04-01"),
     } as any)
-    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
+    mockTx()
 
     await markAsRenewed("sub-1")
 
     expect(mockDb.$transaction).toHaveBeenCalledTimes(1)
-    const txArgs = vi.mocked(mockDb.$transaction).mock.calls[0][0] as unknown as any[]
-    expect(txArgs).toHaveLength(2) // subscription update + renewal log create
+    expect(vi.mocked(mockDb.$transaction).mock.calls[0][0]).toBeTypeOf("function")
   })
 })
 
@@ -263,7 +275,7 @@ describe("markAsRenewed() — all billing cycles", () => {
         id: "sub-1", billingCycle: c.cycle, customDays: c.customDays,
         renewalDate: new Date(c.renewalDate),
       } as any)
-      vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
+      mockTx()
 
       await markAsRenewed("sub-1")
 
@@ -287,7 +299,7 @@ describe("markAsRenewed() — all billing cycles", () => {
       id: "sub-1", billingCycle: "ONE_TIME", customDays: null,
       renewalDate: originalDate,
     } as any)
-    vi.mocked(mockDb.$transaction).mockResolvedValueOnce([{}, {}] as any)
+    mockTx()
 
     await markAsRenewed("sub-1")
     const updateCall = vi.mocked(mockDb.subscription.update).mock.calls[0][0]

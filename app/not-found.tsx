@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { RiHome4Line } from "@remixicon/react"
 import { Button } from "@/components/ui/button"
 
-const HOME = "/"
+const HOME = "/dashboard"
 const SECONDS = 10
 
 export default function NotFound() {

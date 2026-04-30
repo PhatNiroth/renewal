@@ -17,6 +17,7 @@ vi.mock("@/lib/db", () => ({
       create:     vi.fn(),
       update:     vi.fn(),
       findUnique: vi.fn(),
+      findFirst:  vi.fn(),
       delete:     vi.fn(),
     },
     notificationConfig: {
@@ -38,6 +39,7 @@ function session() {
 }
 
 function okCreate() {
+  vi.mocked(mockDb.subscription.findFirst).mockResolvedValueOnce(null)
   vi.mocked(mockDb.subscription.create).mockResolvedValueOnce({ id: "sub-new" } as any)
 }
 

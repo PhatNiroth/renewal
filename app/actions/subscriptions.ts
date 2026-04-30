@@ -80,6 +80,16 @@ export async function createSubscription(formData: FormData): Promise<ActionResu
   const costCents = cost ? Math.round(parseFloat(cost) * 100) : 0
   if (isNaN(costCents) || costCents < 0) return { error: "Invalid cost amount" }
 
+  const duplicate = await db.subscription.findFirst({
+    where: {
+      vendorId,
+      planName: { equals: planName, mode: "insensitive" },
+      status:   { not: SubscriptionStatus.CANCELLED },
+    },
+    select: { id: true },
+  })
+  if (duplicate) return { error: `A subscription "${planName}" for this vendor already exists` }
+
   const extraReminders = parseExtraReminders(formData.getAll("extraReminders"))
 
   try {
@@ -184,8 +194,9 @@ export async function cancelSubscription(subscriptionId: string): Promise<Action
 
 export async function markAsRenewed(subscriptionId: string): Promise<ActionResult> {
   const session = await auth()
-  const u = getUser(session)
-  if (!u?.id) return { error: "Unauthorized" }
+  if (!session?.user?.id) return { error: "Unauthorized" }
+
+  const { id: userId, email, name } = session.user
 
   try {
     const sub = await db.subscription.findUnique({ where: { id: subscriptionId } })
@@ -194,23 +205,31 @@ export async function markAsRenewed(subscriptionId: string): Promise<ActionResul
     const next    = nextRenewalDate(sub.renewalDate, sub.billingCycle, sub.customDays)
     const newDate = sub.billingCycle === BillingCycle.ONE_TIME ? sub.renewalDate : next
 
-    await db.$transaction([
-      db.subscription.update({
+    await db.$transaction(async (tx) => {
+      const dbUser = await tx.user.upsert({
+        where:  { email },
+        update: { name: name ?? null },
+        create: { email, name: name ?? null },
+        select: { id: true },
+      })
+
+      await tx.subscription.update({
         where: { id: subscriptionId },
         data: {
           status:      SubscriptionStatus.ACTIVE,
           renewalDate: newDate,
         },
-      }),
-      db.renewalLog.create({
+      })
+
+      await tx.renewalLog.create({
         data: {
           subscriptionId,
           previousDate: sub.renewalDate,
           newDate,
-          renewedById:  u.id,
+          renewedById:  dbUser.id,
         },
-      }),
-    ])
+      })
+    })
 
     revalidatePath("/dashboard/subscriptions")
     revalidatePath("/dashboard")

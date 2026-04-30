@@ -23,6 +23,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     newDate: log.newDate.toISOString(),
     createdAt: log.createdAt.toISOString(),
     renewedBy: { name: log.renewedBy.name, email: log.renewedBy.email },
+    isAuto: log.notes === "auto",
   }))
 
   return NextResponse.json(serialized)

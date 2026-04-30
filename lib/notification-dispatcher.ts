@@ -112,6 +112,7 @@ export async function syncSubscriptionStatuses(): Promise<void> {
               previousDate,
               newDate,
               renewedById: systemActor.id,
+              notes: "auto",
             },
           })]
         : []

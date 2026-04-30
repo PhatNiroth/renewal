@@ -5,8 +5,9 @@ import { db } from "@/lib/db"
 vi.mock("@/lib/db", () => ({
   db: {
     vendor: {
-      create: vi.fn(),
-      update: vi.fn(),
+      create:    vi.fn(),
+      update:    vi.fn(),
+      findFirst: vi.fn(),
     },
   },
 }))
@@ -26,7 +27,10 @@ function userSession() {
 // ─── createVendor ─────────────────────────────────────────────────────────────
 
 describe("createVendor", () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(mockDb.vendor.findFirst).mockResolvedValue(null)
+  })
 
   it("returns Unauthorized if not logged in", async () => {
     mockAuth.mockResolvedValueOnce(null as any)
@@ -115,13 +119,11 @@ describe("createVendor", () => {
 
   it("returns friendly error on duplicate name", async () => {
     mockAuth.mockResolvedValueOnce(userSession())
-    vi.mocked(mockDb.vendor.create).mockRejectedValueOnce(
-      new Error("Unique constraint failed on the fields: (`name`)")
-    )
+    vi.mocked(mockDb.vendor.findFirst).mockResolvedValueOnce({ id: "existing-vendor" } as any)
     const fd = new FormData()
     fd.set("name", "Anthropic")
     const result = await createVendor(fd)
-    expect(result).toEqual({ error: "A vendor with this name already exists" })
+    expect(result).toEqual({ error: `A vendor named "Anthropic" already exists` })
   })
 })
 

@@ -8,6 +8,7 @@ vi.mock("@/lib/db", () => ({
       create:     vi.fn(),
       update:     vi.fn(),
       findUnique: vi.fn(),
+      findFirst:  vi.fn(),
       delete:     vi.fn(),
     },
     notificationConfig: {
@@ -41,7 +42,10 @@ const {
 // ─── createSubscription ───────────────────────────────────────────────────────
 
 describe("createSubscription", () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(mockDb.subscription.findFirst).mockResolvedValue(null)
+  })
 
   it("returns Unauthorized if not logged in", async () => {
     mockAuth.mockResolvedValueOnce(null as any)

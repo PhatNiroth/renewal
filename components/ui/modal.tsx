@@ -17,7 +17,7 @@ const sizeClass = {
 
 export function Modal({ title, onClose, children, size = "md" }: ModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4">
       <div
         className={`w-full ${sizeClass[size]} rounded-xl border border-border bg-card shadow-xl max-h-[90vh] overflow-y-auto`}
         onClick={e => e.stopPropagation()}

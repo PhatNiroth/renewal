@@ -7,8 +7,7 @@ export default async function SubscriptionsPage() {
   const session = await auth()
   if (!session?.user) redirect("/login")
 
-  const u = session.user as { isAdmin?: boolean; permissions?: Record<string, { view?: boolean; add?: boolean; edit?: boolean; delete?: boolean }> }
-  if (!u.isAdmin && !u.permissions?.SUBSCRIPTIONS?.view) redirect("/dashboard")
+  const isAdmin = session.user.isAdmin
 
   const [subscriptions, vendors, users, paymentMethods] = await Promise.all([
     db.subscription.findMany({
@@ -29,12 +28,12 @@ export default async function SubscriptionsPage() {
     }),
   ])
 
-  const canEdit         = u.isAdmin || u.permissions?.SUBSCRIPTIONS?.edit === true
-  const canAdd          = u.isAdmin || u.permissions?.SUBSCRIPTIONS?.add  === true
-  const canDelete       = u.isAdmin || u.permissions?.SUBSCRIPTIONS?.delete === true
-  const canViewHistory  = u.isAdmin || u.permissions?.RENEWALS?.view === true
-  const canMarkRenewed  = u.isAdmin || u.permissions?.RENEWALS?.edit === true
-  const canCreatePaymentMethod = canAdd || canEdit
+  const canEdit                = true
+  const canAdd                 = true
+  const canDelete              = isAdmin
+  const canViewHistory         = true
+  const canMarkRenewed         = true
+  const canCreatePaymentMethod = true
 
   return (
     <SubscriptionsClient

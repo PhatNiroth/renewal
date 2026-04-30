@@ -776,6 +776,7 @@ type HistoryEntry = {
   newDate: string
   createdAt: string
   renewedBy: { name: string | null; email: string }
+  isAuto: boolean
 }
 
 function HistoryModal({ sub, onClose }: { sub: SubscriptionFull; onClose: () => void }) {
@@ -787,7 +788,7 @@ function HistoryModal({ sub, onClose }: { sub: SubscriptionFull; onClose: () => 
     let cancelled = false
     setLoading(true)
     setError(null)
-    fetch(`/api/subscriptions/${sub.id}/history`)
+    fetch(`/renewal/api/subscriptions/${sub.id}/history`)
       .then(async r => {
         if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "Failed to load history")
         return r.json()
@@ -830,7 +831,14 @@ function HistoryModal({ sub, onClose }: { sub: SubscriptionFull; onClose: () => 
                   <tr key={log.id}>
                     <td className="px-3 py-2 text-muted-foreground">{fmtDate(log.previousDate)}</td>
                     <td className="px-3 py-2 text-foreground">{fmtDate(log.newDate)}</td>
-                    <td className="px-3 py-2 text-foreground truncate">{log.renewedBy.name || log.renewedBy.email}</td>
+                    <td className="px-3 py-2 text-foreground truncate">
+                      <span className="flex items-center gap-1.5">
+                        {log.isAuto
+                          ? <span className="inline-flex items-center rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">Auto</span>
+                          : null}
+                        {log.renewedBy.name || log.renewedBy.email}
+                      </span>
+                    </td>
                     <td className="px-3 py-2 text-muted-foreground">{fmtDate(log.createdAt)}</td>
                   </tr>
                 ))}
@@ -840,7 +848,7 @@ function HistoryModal({ sub, onClose }: { sub: SubscriptionFull; onClose: () => 
         )}
         {!loading && !error && logs && (
           <p className="text-xs text-muted-foreground">
-            Auto-renewals are not shown — only manual &quot;Mark as Renewed&quot; actions are logged.
+            Shows both manual renewals and auto-renewals. Auto-renewals are tagged with <span className="inline-flex items-center rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">Auto</span>.
           </p>
         )}
         <div className="flex justify-end pt-1">
@@ -899,7 +907,7 @@ export default function SubscriptionsClient({
 
   const onCreatePaymentMethod: PaymentMethodCreator | undefined = canCreatePaymentMethod
     ? async (name: string) => {
-        const res = await fetch("/api/payment-methods", {
+        const res = await fetch("/renewal/api/payment-methods", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name }),

@@ -34,6 +34,12 @@ export async function createVendor(formData: FormData): Promise<ActionResult> {
 
   const slug = toSlug(name)
 
+  const existing = await db.vendor.findFirst({
+    where: { OR: [{ name: { equals: name, mode: "insensitive" } }, { slug }] },
+    select: { id: true },
+  })
+  if (existing) return { error: `A vendor named "${name}" already exists` }
+
   try {
     await db.vendor.create({
       data: {

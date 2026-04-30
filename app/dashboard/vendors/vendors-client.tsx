@@ -195,7 +195,7 @@ function DeleteModal({ vendor, onClose, onSuccess }: { vendor: VendorRow; onClos
 
   function handleDelete() {
     startTransition(async () => {
-      const res = await fetch(`/api/admin/vendors/${vendor.id}`, { method: "DELETE" })
+      const res = await fetch(`/renewal/api/admin/vendors/${vendor.id}`, { method: "DELETE" })
       if (!res.ok) { const j = await res.json(); setError(j.error); toast.error("Failed to delete vendor"); return }
       toast.success("Vendor deleted"); onSuccess(); onClose()
     })
@@ -259,7 +259,7 @@ export default function VendorsClient({
 
   const onCreateCategory = canCreateCategory
     ? async (name: string): Promise<string | null> => {
-        const res = await fetch("/api/vendor-categories", {
+        const res = await fetch("/renewal/api/vendor-categories", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name }),

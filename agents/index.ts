@@ -97,3 +97,19 @@ export {
   type PipelineStepResult,
   type PipelineStepStatus,
 } from "./dev/feature-pipeline.agent"
+
+// Reviews UI components for UX/accessibility/missing states from a Senior Designer perspective
+export {
+  reviewUX,
+  type UXReviewInput,
+  type UXReview,
+  type UXIssue,
+} from "./dev/ux-reviewer.agent"
+
+// Reviews code/features for test gaps, edge cases, and regression risks from a Senior QA perspective
+export {
+  reviewQA,
+  type QAReviewInput,
+  type QAReview,
+  type QATestCase,
+} from "./dev/qa-reviewer.agent"

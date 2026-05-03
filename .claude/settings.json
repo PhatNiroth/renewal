@@ -27,8 +27,7 @@
       "Bash(git clean *)",
       "Bash(rm -rf *)",
       "Bash(drop *)",
-      "Edit(.env)",
-      "Edit(.env.*)"
+      "Edit(.env)"
     ]
   },
   "hooks": {

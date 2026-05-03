@@ -1,4 +1,4 @@
-import { jwtVerify } from "jose"
+import { jwtVerify, type JWTPayload } from "jose"
 import { cookies } from "next/headers"
 
 export type Session = {
@@ -10,7 +10,7 @@ export type Session = {
   }
 }
 
-type AccessTokenPayload = {
+type AccessTokenPayload = JWTPayload & {
   sub: string
   email: string
   firstName: string | null
@@ -19,9 +19,10 @@ type AccessTokenPayload = {
 }
 
 function getSecret() {
-  const secret = process.env.JWT_ACCESS_SECRET
-  if (!secret) throw new Error("JWT_ACCESS_SECRET is not set")
-  return new TextEncoder().encode(secret)
+  // const secret = process.env.JWT_ACCESS_SECRET
+  // if (!secret) throw new Error("JWT_ACCESS_SECRET is not set")
+  // return new TextEncoder().encode(secret)
+  return new TextEncoder().encode(process.env.JWT_ACCESS_SECRET!)
 }
 
 function payloadToSession(payload: AccessTokenPayload): Session {
@@ -40,14 +41,13 @@ export async function auth(): Promise<Session | null> {
   try {
     const cookieStore = await cookies()
     const token = cookieStore.get("access_token")?.value
-    console.log(`Auth: token present: ${token}`)
     if (!token) return null
 
-    const { payload } = await jwtVerify<AccessTokenPayload>(token, getSecret())
-    console.log(`Auth: token valid, payload: ${JSON.stringify(payload)}`)
+    const secret = getSecret();
+    const { payload } = await jwtVerify<AccessTokenPayload>(token, secret)
     return payloadToSession(payload)
-  } catch {
+  } catch (err) {
+    console.error("Auth: jwtVerify failed:", err)
     return null
   }
 }
-

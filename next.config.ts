@@ -1,7 +1,7 @@
-import type { NextConfig } from "next";
+// import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  basePath: "/renewal",
-};
+// const nextConfig: NextConfig = {
+//   basePath: "/renewal",
+// };
 
-export default nextConfig;
+// export default nextConfig;

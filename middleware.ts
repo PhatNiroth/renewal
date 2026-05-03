@@ -33,9 +33,11 @@ export async function middleware(req: NextRequest) {
   const session = await getSession(req)
   const isLoggedIn = !!session
 
+  console.log(`Middleware: ${pathname}, logged in: ${isLoggedIn}, isAdmin: ${session?.isAdmin}`)
+
   if (pathname.startsWith("/renewal/dashboard")) {
     if (!isLoggedIn) {
-      return NextResponse.redirect(new URL("https://dashboard.krawma.com/login", req.url))
+      return NextResponse.redirect(new URL("http://localhost:3000/login", req.url))
     }
 
     if (

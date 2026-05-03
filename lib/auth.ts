@@ -40,9 +40,11 @@ export async function auth(): Promise<Session | null> {
   try {
     const cookieStore = await cookies()
     const token = cookieStore.get("access_token")?.value
+    console.log(`Auth: token present: ${token}`)
     if (!token) return null
 
     const { payload } = await jwtVerify<AccessTokenPayload>(token, getSecret())
+    console.log(`Auth: token valid, payload: ${JSON.stringify(payload)}`)
     return payloadToSession(payload)
   } catch {
     return null

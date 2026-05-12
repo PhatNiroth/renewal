@@ -31,10 +31,14 @@ async function tryRefresh(req: NextRequest): Promise<{ session: { id: string; is
 
   try {
     const dashboardUrl = process.env.DASHBOARD_URL ?? "https://dashboard.krawma.com"
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 3000)
     const res = await fetch(`${dashboardUrl}/api/auth/refresh`, {
       method:  "POST",
       headers: { "Content-Type": "application/json", cookie: `refresh_token=${refreshToken}` },
+      signal:  controller.signal,
     })
+    clearTimeout(timeout)
 
     if (!res.ok) return null
 

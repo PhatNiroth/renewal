@@ -26,6 +26,8 @@ const statusLabels: Record<string, string> = {
   EXPIRED: "Expired", CANCELLED: "Cancelled",
 }
 
+export const revalidate = 30
+
 export default async function DashboardPage() {
   const subscriptions = await db.subscription.findMany({
     include: { vendor: true, responsible: true },

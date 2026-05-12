@@ -1,13 +1,12 @@
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { redirect } from "next/navigation"
 import SubscriptionsClient from "./subscriptions-client"
+
+export const revalidate = 30
 
 export default async function SubscriptionsPage() {
   const session = await auth()
-  if (!session?.user) redirect("/login")
-
-  const isAdmin = session.user.isAdmin
+  const isAdmin = session?.user?.isAdmin ?? false
 
   const [subscriptions, vendors, users] = await Promise.all([
     db.subscription.findMany({

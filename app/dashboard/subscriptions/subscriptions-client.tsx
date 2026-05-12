@@ -831,6 +831,7 @@ export default function SubscriptionsClient({
   const [deleting, setDeleting]           = useState<SubscriptionFull | null>(null)
   const [deleteError, setDeleteError]     = useState<string | null>(null)
   const [renewing, setRenewing]           = useState<string | null>(null)
+  const [renewConfirm, setRenewConfirm]   = useState<SubscriptionFull | null>(null)
   const [historyFor, setHistoryFor]       = useState<SubscriptionFull | null>(null)
   const [viewing, setViewing]             = useState<SubscriptionFull | null>(null)
   const [page, setPage]                   = useState(1)
@@ -891,6 +892,7 @@ export default function SubscriptionsClient({
 
   async function handleMarkRenewed(id: string) {
     setRenewing(id)
+    setRenewConfirm(null)
     const result = await markAsRenewed(id)
     setRenewing(null)
     if ("error" in result) toast.error(result.error || "Failed to mark as renewed")
@@ -935,6 +937,28 @@ export default function SubscriptionsClient({
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => { setDeleting(null); setDeleteError(null) }}>Cancel</Button>
               <Button variant="destructive" onClick={() => handleDelete(deleting.id)}>Delete</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {renewConfirm && (
+        <Modal title="Mark as Renewed" onClose={() => setRenewConfirm(null)}>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Mark <strong className="text-foreground">{renewConfirm.vendor.name} — {renewConfirm.planName}</strong> as renewed? This will advance the renewal date by one billing cycle.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setRenewConfirm(null)} disabled={renewing === renewConfirm.id}>Cancel</Button>
+              <Button
+                className="text-white bg-emerald-600 hover:bg-emerald-700"
+                disabled={renewing === renewConfirm.id}
+                onClick={() => handleMarkRenewed(renewConfirm.id)}
+              >
+                {renewing === renewConfirm.id
+                  ? <><RiLoader4Line className="size-4 animate-spin" data-icon="inline-start" />Renewing…</>
+                  : <><RiCheckDoubleLine data-icon="inline-start" />Confirm Renewal</>}
+              </Button>
             </div>
           </div>
         </Modal>
@@ -1098,7 +1122,7 @@ export default function SubscriptionsClient({
                                 title="Mark as Renewed"
                                 className="text-emerald-600 hover:text-emerald-600"
                                 disabled={renewing === sub.id}
-                                onClick={() => handleMarkRenewed(sub.id)}
+                                onClick={() => setRenewConfirm(sub)}
                               >
                                 {renewing === sub.id
                                   ? <RiLoader4Line className="size-4 animate-spin" />

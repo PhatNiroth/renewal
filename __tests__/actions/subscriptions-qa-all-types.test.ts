@@ -9,7 +9,7 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }))
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn(), updateTag: vi.fn(), unstable_cache: vi.fn((fn: () => unknown) => fn) }))
 
 vi.mock("@/lib/db", () => ({
   db: {

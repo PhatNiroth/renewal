@@ -2,7 +2,8 @@
 
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { revalidatePath } from "next/cache"
+import { updateTag } from "next/cache"
+import { CacheTags } from "@/lib/cache-tags"
 
 type ActionResult = { error: string } | { success: true }
 
@@ -54,7 +55,7 @@ export async function createVendor(formData: FormData): Promise<ActionResult> {
         paymentMethod: paymentMethod || null,
       },
     })
-    revalidatePath("/dashboard/vendors")
+    updateTag(CacheTags.vendors)
     return { success: true }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
@@ -91,7 +92,7 @@ export async function updateVendor(vendorId: string, formData: FormData): Promis
         paymentMethod: paymentMethod || null,
       },
     })
-    revalidatePath("/dashboard/vendors")
+    updateTag(CacheTags.vendors)
     return { success: true }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
@@ -107,7 +108,7 @@ export async function deactivateVendor(vendorId: string): Promise<ActionResult> 
 
   try {
     await db.vendor.update({ where: { id: vendorId }, data: { isActive: false } })
-    revalidatePath("/dashboard/vendors")
+    updateTag(CacheTags.vendors)
     return { success: true }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)

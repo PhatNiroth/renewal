@@ -2,7 +2,8 @@
 
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { revalidatePath } from "next/cache"
+import { updateTag } from "next/cache"
+import { CacheTags } from "@/lib/cache-tags"
 import { BillingCycle, Department, SubscriptionStatus, SubscriptionKind } from "@prisma/client"
 import { nextRenewalDate } from "@/lib/renewal-utils"
 
@@ -113,8 +114,8 @@ export async function createSubscription(formData: FormData): Promise<ActionResu
       },
     })
     if (extraReminders.length > 0) await syncExtraReminders(created.id, extraReminders)
-    revalidatePath("/dashboard/subscriptions")
-    revalidatePath("/dashboard")
+    updateTag(CacheTags.subscriptions)
+    updateTag(CacheTags.vendors)
     return { success: true }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
@@ -161,8 +162,8 @@ export async function updateSubscription(
     if (extraReminders !== undefined) {
       await syncExtraReminders(subscriptionId, parseExtraReminders(extraReminders))
     }
-    revalidatePath("/dashboard/subscriptions")
-    revalidatePath("/dashboard")
+    updateTag(CacheTags.subscriptions)
+    updateTag(CacheTags.vendors)
     return { success: true }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
@@ -180,8 +181,8 @@ export async function cancelSubscription(subscriptionId: string): Promise<Action
       where: { id: subscriptionId },
       data: { status: SubscriptionStatus.CANCELLED },
     })
-    revalidatePath("/dashboard/subscriptions")
-    revalidatePath("/dashboard")
+    updateTag(CacheTags.subscriptions)
+    updateTag(CacheTags.vendors)
     return { success: true }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
@@ -228,8 +229,8 @@ export async function markAsRenewed(subscriptionId: string): Promise<ActionResul
       })
     })
 
-    revalidatePath("/dashboard/subscriptions")
-    revalidatePath("/dashboard")
+    updateTag(CacheTags.subscriptions)
+    updateTag(CacheTags.vendors)
     return { success: true }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
@@ -244,8 +245,8 @@ export async function deleteSubscription(subscriptionId: string): Promise<Action
 
   try {
     await db.subscription.delete({ where: { id: subscriptionId } })
-    revalidatePath("/dashboard/subscriptions")
-    revalidatePath("/dashboard")
+    updateTag(CacheTags.subscriptions)
+    updateTag(CacheTags.vendors)
     return { success: true }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)

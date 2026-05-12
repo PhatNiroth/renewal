@@ -1,14 +1,11 @@
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { unstable_cache } from "next/cache"
+import { CacheTags } from "@/lib/cache-tags"
 import SubscriptionsClient from "./subscriptions-client"
 
-export const revalidate = 30
-
-export default async function SubscriptionsPage() {
-  const session = await auth()
-  const isAdmin = session?.user?.isAdmin ?? false
-
-  const [subscriptions, vendors, users] = await Promise.all([
+const getSubscriptionsPageData = unstable_cache(
+  () => Promise.all([
     db.subscription.findMany({
       include: { vendor: true, responsible: true, notificationConfigs: true },
       orderBy: { renewalDate: "asc" },
@@ -21,7 +18,16 @@ export default async function SubscriptionsPage() {
       select: { id: true, name: true, email: true },
       orderBy: { name: "asc" },
     }),
-  ])
+  ]),
+  ["subscriptions-page"],
+  { tags: [CacheTags.subscriptions, CacheTags.vendors, CacheTags.users], revalidate: 60 }
+)
+
+export default async function SubscriptionsPage() {
+  const session = await auth()
+  const isAdmin = session?.user?.isAdmin ?? false
+
+  const [subscriptions, vendors, users] = await getSubscriptionsPageData()
 
   return (
     <SubscriptionsClient

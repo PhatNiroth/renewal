@@ -1,4 +1,6 @@
 import { db } from "@/lib/db"
+import { unstable_cache } from "next/cache"
+import { CacheTags } from "@/lib/cache-tags"
 import Link from "next/link"
 import {
   RiStackLine, RiMoneyDollarCircleLine, RiCalendarCheckLine,
@@ -26,13 +28,17 @@ const statusLabels: Record<string, string> = {
   EXPIRED: "Expired", CANCELLED: "Cancelled",
 }
 
-export const revalidate = 30
-
-export default async function DashboardPage() {
-  const subscriptions = await db.subscription.findMany({
+const getDashboardSubscriptions = unstable_cache(
+  () => db.subscription.findMany({
     include: { vendor: true, responsible: true },
     orderBy: { renewalDate: "asc" },
-  })
+  }),
+  ["dashboard-subscriptions"],
+  { tags: [CacheTags.subscriptions, CacheTags.vendors], revalidate: 60 }
+)
+
+export default async function DashboardPage() {
+  const subscriptions = await getDashboardSubscriptions()
 
   type Sub = (typeof subscriptions)[number]
 

@@ -6,11 +6,8 @@ type AccessTokenPayload = {
   groups: string[]
 }
 
-async function getSession(req: NextRequest): Promise<{ id: string; isAdmin: boolean } | null> {
+async function verifyToken(token: string): Promise<{ id: string; isAdmin: boolean } | null> {
   try {
-    const token = req.cookies.get("access_token")?.value
-    if (!token) return null
-
     const secret = process.env.JWT_ACCESS_SECRET
     if (!secret) return null
 
@@ -28,27 +25,78 @@ async function getSession(req: NextRequest): Promise<{ id: string; isAdmin: bool
   }
 }
 
+async function tryRefresh(req: NextRequest): Promise<{ session: { id: string; isAdmin: boolean }; newAccessToken: string } | null> {
+  const refreshToken = req.cookies.get("refresh_token")?.value
+  if (!refreshToken) return null
+
+  try {
+    const dashboardUrl = process.env.DASHBOARD_URL ?? "https://dashboard.krawma.com"
+    const res = await fetch(`${dashboardUrl}/api/auth/refresh`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json", cookie: `refresh_token=${refreshToken}` },
+    })
+
+    if (!res.ok) return null
+
+    const data = await res.json()
+    const newAccessToken: string = data.access_token
+    if (!newAccessToken) return null
+
+    const session = await verifyToken(newAccessToken)
+    if (!session) return null
+
+    return { session, newAccessToken }
+  } catch {
+    return null
+  }
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
-  const session = await getSession(req)
-  const isLoggedIn = !!session
 
+  // Try existing access token first
+  const accessToken = req.cookies.get("access_token")?.value
+  let session = accessToken ? await verifyToken(accessToken) : null
+  let newAccessToken: string | null = null
+
+  // If access token is missing or expired, try refresh
+  if (!session) {
+    const refreshed = await tryRefresh(req)
+    if (refreshed) {
+      session = refreshed.session
+      newAccessToken = refreshed.newAccessToken
+    }
+  }
+
+  const isLoggedIn = !!session
   console.log(`Middleware: ${pathname}, logged in: ${isLoggedIn}, isAdmin: ${session?.isAdmin}`)
 
   if (pathname.startsWith("/renewal/dashboard")) {
     if (!isLoggedIn) {
-      return NextResponse.redirect(new URL("http://localhost:3000/login", req.url))
+      const loginUrl = process.env.DASHBOARD_URL
+        ? `${process.env.DASHBOARD_URL}/login`
+        : "https://dashboard.krawma.com/login"
+      return NextResponse.redirect(new URL(loginUrl, req.url))
     }
 
-    if (
-      pathname.startsWith("/renewal/dashboard/settings") &&
-      !session?.isAdmin
-    ) {
+    if (pathname.startsWith("/renewal/dashboard/settings") && !session?.isAdmin) {
       return NextResponse.redirect(new URL("/renewal/dashboard", req.url))
     }
   }
 
-  return NextResponse.next()
+  const response = NextResponse.next()
+
+  // Set the new access token cookie if we refreshed
+  if (newAccessToken) {
+    response.cookies.set("access_token", newAccessToken, {
+      httpOnly: true,
+      secure:   process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path:     "/",
+    })
+  }
+
+  return response
 }
 
 export const config = {

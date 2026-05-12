@@ -154,7 +154,7 @@ export async function runNotificationDispatcher(): Promise<DispatchResult> {
     renewal7d:      globalSetting?.renewal7d      ?? true,
     renewal3d:      globalSetting?.renewal3d      ?? true,
     renewal1d:      globalSetting?.renewal1d      ?? true,
-    renewalExpired: globalSetting?.renewalExpired ?? false,
+    renewalExpired: globalSetting?.renewalExpired ?? true,
   }
 
   // Fallback recipients when no responsible user is assigned
@@ -285,6 +285,91 @@ export async function runNotificationDispatcher(): Promise<DispatchResult> {
         console.error(`[notifications] Failed for subscription ${sub.id} (${type}):`, err)
         errors++
         // sentAt stays null → will retry on next run
+      }
+    }
+  }
+
+  // ─── Expired notifications ────────────────────────────────────────────────
+  if (globalPrefs.renewalExpired) {
+    const today = startOfDay(now)
+    const todayEnd = endOfDay(now)
+
+    const expiredSubs = await db.subscription.findMany({
+      where: {
+        status: SubscriptionStatus.EXPIRED,
+      },
+      include: {
+        vendor:      { include: { category: true } },
+        responsible: true,
+        notificationLogs: {
+          where: { type: NotifType.RENEWAL_EXPIRED, scheduledFor: { gte: today, lte: todayEnd } },
+        },
+      },
+    })
+
+    for (const sub of expiredSubs) {
+      const priorLog = sub.notificationLogs.find(l => l.sentAt !== null)
+      if (priorLog) { skipped++; continue }
+      const staleLog = sub.notificationLogs.find(l => l.sentAt === null)
+
+      const recipients: { id: string; name: string; email: string }[] = sub.responsible
+        ? [{ id: sub.responsible.id, name: sub.responsible.name ?? sub.responsible.email, email: sub.responsible.email }]
+        : admins.map(a => ({ id: a.id, name: a.name ?? a.email, email: a.email }))
+
+      if (recipients.length === 0) { skipped++; continue }
+
+      let log
+      try {
+        log = staleLog
+          ? await db.notificationLog.update({
+              where: { id: staleLog.id },
+              data:  { recipients: recipients.map(r => ({ name: r.name, email: r.email })) },
+            })
+          : await db.notificationLog.create({
+              data: {
+                subscriptionId: sub.id,
+                type:           NotifType.RENEWAL_EXPIRED,
+                scheduledFor:   today,
+                recipients:     recipients.map(r => ({ name: r.name, email: r.email })),
+              },
+            })
+      } catch (err) {
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+          skipped++; continue
+        }
+        throw err
+      }
+
+      try {
+        const renewalDateStr = sub.renewalDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+        const costStr = `$${(sub.cost / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}`
+        const subject = `Expired: ${sub.vendor.name} — ${sub.planName} has expired`
+        const headline = `${sub.vendor.name} subscription has expired`
+        const preheader = `${sub.planName} · ${costStr} · Expired ${renewalDateStr}`
+        const bodyText = `The following subscription has expired and requires immediate attention:\n\nVendor: ${sub.vendor.name}\nPlan: ${sub.planName}\nCost: ${costStr}\nExpired on: ${renewalDateStr}`
+        const actionItems = [`Renew or cancel ${sub.vendor.name} — ${sub.planName}`]
+        const html = buildEmailHtml(headline, preheader, bodyText, actionItems)
+
+        const emailOverride = process.env.TEST_EMAIL_OVERRIDE
+        for (const recipient of recipients) {
+          await sendEmail(emailOverride ?? recipient.email, subject, html)
+        }
+
+        const groupChatId = process.env.TELEGRAM_GROUP_CHAT_ID
+        if (groupChatId) {
+          const telegramText = `🔴 ${headline}\n\nVendor: ${sub.vendor.name}\nPlan: ${sub.planName}\nCost: ${costStr}\nExpired: ${renewalDateStr}\n\n${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscriptions`
+          await sendTelegramMessage(groupChatId, telegramText).catch(err => {
+            console.error(`[notifications] Telegram expired failed:`, err)
+            telegramErrors++
+          })
+        }
+
+        await db.notificationLog.update({ where: { id: log.id }, data: { sentAt: new Date() } })
+        console.log(`[notifications] Sent RENEWAL_EXPIRED for "${sub.vendor.name} — ${sub.planName}" to ${recipients.map(r => r.email).join(", ")}`)
+        sent++
+      } catch (err) {
+        console.error(`[notifications] Failed expired notification for subscription ${sub.id}:`, err)
+        errors++
       }
     }
   }

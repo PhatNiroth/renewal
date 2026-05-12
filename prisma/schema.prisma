@@ -195,7 +195,7 @@ model GlobalNotificationSetting {
   renewal7d      Boolean @default(true)
   renewal3d      Boolean @default(true)
   renewal1d      Boolean @default(true)
-  renewalExpired Boolean @default(false)
+  renewalExpired Boolean @default(true)
 }
 
 enum NotifType {
@@ -207,4 +207,5 @@ enum NotifType {
   RENEWAL_REMINDER_1_DAY
   RENEWAL_SUCCESS
   RENEWAL_FAILED
+  RENEWAL_EXPIRED
 }

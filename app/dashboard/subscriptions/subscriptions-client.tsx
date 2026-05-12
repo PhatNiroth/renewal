@@ -221,11 +221,13 @@ function computeRenewalDate(startIso: string, cycle: string, customDays: number 
 function AddSubscriptionModal({
   vendors,
   users,
+  currentUserId,
   onClose,
   onSuccess,
 }: {
   vendors: Vendor[]
   users: Pick<User, "id" | "name" | "email">[]
+  currentUserId: string
   onClose: () => void
   onSuccess: () => void
 }) {
@@ -379,6 +381,7 @@ function AddSubscriptionModal({
             <Combobox
               name="responsibleId"
               options={users.map(u => ({ value: u.id, label: u.name || u.email, searchText: u.email }))}
+              defaultValue={currentUserId}
               placeholder="Unassigned"
               searchPlaceholder="Search users…"
               emptyMessage="No users match."
@@ -805,6 +808,7 @@ export default function SubscriptionsClient({
   subscriptions,
   vendors,
   users,
+  currentUserId,
   canEdit,
   canAdd,
   canDelete,
@@ -814,6 +818,7 @@ export default function SubscriptionsClient({
   subscriptions: SubscriptionFull[]
   vendors: Vendor[]
   users: Pick<User, "id" | "name" | "email">[]
+  currentUserId: string
   canEdit: boolean
   canAdd: boolean
   canDelete: boolean
@@ -905,6 +910,7 @@ export default function SubscriptionsClient({
         <AddSubscriptionModal
           vendors={vendors}
           users={users}
+          currentUserId={currentUserId}
           onClose={() => setShowModal(false)}
           onSuccess={() => router.refresh()}
         />

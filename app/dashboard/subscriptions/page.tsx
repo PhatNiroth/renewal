@@ -34,6 +34,7 @@ export default async function SubscriptionsPage() {
       subscriptions={subscriptions}
       vendors={vendors}
       users={users}
+      currentUserId={session?.user?.id ?? ""}
       canEdit={true}
       canAdd={true}
       canDelete={!!isAdmin}
